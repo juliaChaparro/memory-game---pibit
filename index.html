@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Memória Amazônico</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Jogo da Memória Amazônico</h1>
+
+        <div class="informacoes">
+
+            <div class="info-box">
+                <strong>Pontos:</strong>
+                <span id="pontuacao">0</span>
+            </div>
+
+            <div class="info-box">
+                <strong>Tempo:</strong>
+                <span id="tempo">00:00</span>
+            </div>
+
+        </div>
+    </header>
+
+    <main>
+
+        <!-- As cartas serão criadas pelo JavaScript -->
+        <div id="tabuleiro"></div>
+
+    </main>
+
+    <script type="module">
+
+        import Jogo from "./js/Jogo.js";
+
+        const jogo = new Jogo();
+
+        jogo.iniciar();
+
+    </script>
+
+</body>
+
+</html>
