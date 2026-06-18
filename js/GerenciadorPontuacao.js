@@ -18,4 +18,5 @@ export default class GerenciadorPontuacao {
     resetar() {
         this.pontos = 0;
     }
+    
 }
