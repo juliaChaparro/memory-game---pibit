@@ -170,7 +170,8 @@ h1 {
 #area-jogo {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100dvh;    /* ocupa exatamente a altura da tela – sem scroll */
+    overflow: hidden;  /* bloqueia qualquer estouro vertical */
 }
 
 #cabecalho-jogo {
@@ -275,25 +276,55 @@ h1 {
 
 #area-tabuleiro {
     flex: 1;
+    min-height: 0;           /* essencial para o flex não ultrapassar a tela */
+    overflow: hidden;        /* garante que nada extrapola a viewport */
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 30px 20px;
+    padding: 20px;           /* espaçamento interno da área do jogo */
 }
 
 #tabuleiro {
     display: grid;
-    gap: 14px;
+
+    /* ============================================================
+     * ESPAÇAMENTO ENTRE AS CARTAS
+     * Aumente ou diminua este valor para testar:
+     * Exemplo: gap: 8px;  → cartas mais juntas
+     *          gap: 18px; → cartas mais separadas
+     * ============================================================ */
+    gap: 10px;
+
     justify-content: center;
     align-content: center;
 }
 
-/* Tamanhos baseados em viewport para sempre ocupar bem a tela */
-#tabuleiro[data-cols="2"] { grid-template-columns: repeat(2, min(38vw, 320px)); }
-#tabuleiro[data-cols="3"] { grid-template-columns: repeat(3, min(28vw, 250px)); }
-#tabuleiro[data-cols="4"] { grid-template-columns: repeat(4, min(20vw, 200px)); }
-#tabuleiro[data-cols="5"] { grid-template-columns: repeat(5, min(16vw, 170px)); }
-#tabuleiro[data-cols="6"] { grid-template-columns: repeat(6, min(13vw, 155px)); }
+/* ================================================================
+ * TAMANHO DAS CARTAS – calculado automaticamente para caber na tela
+ * A fórmula: min(altura_disponível / nLinhas, largura_disponível / nColunas, máximo_em_px)
+ *
+ * Para TESTAR tamanhos maiores/menores, altere o 3º valor (ex: 280px → 200px):
+ *   min(calc((100dvh - NNpx) / N), calc((100vw - NNpx) / N, SEU_VALOR_AQUI)
+ *
+ * Legenda dos offsets:
+ *   100dvh - 120px → desconta cabeçalho (~80px) + padding vertical (~40px)
+ *   (N-1)*10px     → desconta os gaps entre as N colunas/linhas
+ * ================================================================ */
+
+/* 2×2 – máximo: 320px por carta (altere para testar) */
+#tabuleiro[data-cols="2"] { grid-template-columns: repeat(2, min(calc((100dvh - 130px) / 2 - 5px), calc((100vw - 80px) / 2), 320px)); }
+
+/* 3×3 – máximo: 250px por carta */
+#tabuleiro[data-cols="3"] { grid-template-columns: repeat(3, min(calc((100dvh - 140px) / 3 - 7px), calc((100vw - 80px) / 3), 250px)); }
+
+/* 4×4 – máximo: 200px por carta */
+#tabuleiro[data-cols="4"] { grid-template-columns: repeat(4, min(calc((100dvh - 150px) / 4 - 8px), calc((100vw - 80px) / 4), 200px)); }
+
+/* 5×5 – máximo: 170px por carta */
+#tabuleiro[data-cols="5"] { grid-template-columns: repeat(5, min(calc((100dvh - 160px) / 5 - 8px), calc((100vw - 80px) / 5), 170px)); }
+
+/* 6×6 – máximo: 155px por carta */
+#tabuleiro[data-cols="6"] { grid-template-columns: repeat(6, min(calc((100dvh - 170px) / 6 - 8px), calc((100vw - 80px) / 6), 155px)); }
 
 /* ======================================== */
 /* CARTAS                                   */
@@ -305,12 +336,12 @@ h1 {
     position: relative;
 }
 
-/* Altura = largura (quadrado), seguindo o mesmo min() das colunas */
-#tabuleiro[data-cols="2"] .carta { width: min(38vw, 320px); height: min(38vw, 320px); }
-#tabuleiro[data-cols="3"] .carta { width: min(28vw, 250px); height: min(28vw, 250px); }
-#tabuleiro[data-cols="4"] .carta { width: min(20vw, 200px); height: min(20vw, 200px); }
-#tabuleiro[data-cols="5"] .carta { width: min(16vw, 170px); height: min(16vw, 170px); }
-#tabuleiro[data-cols="6"] .carta { width: min(13vw, 155px); height: min(13vw, 155px); }
+/* Altura = largura (quadrado) – os valores espelham exatamente as colunas acima */
+#tabuleiro[data-cols="2"] .carta { width: min(calc((100dvh - 130px) / 2 - 5px), calc((100vw - 80px) / 2), 320px); height: min(calc((100dvh - 130px) / 2 - 5px), calc((100vw - 80px) / 2), 320px); }
+#tabuleiro[data-cols="3"] .carta { width: min(calc((100dvh - 140px) / 3 - 7px), calc((100vw - 80px) / 3), 250px); height: min(calc((100dvh - 140px) / 3 - 7px), calc((100vw - 80px) / 3), 250px); }
+#tabuleiro[data-cols="4"] .carta { width: min(calc((100dvh - 150px) / 4 - 8px), calc((100vw - 80px) / 4), 200px); height: min(calc((100dvh - 150px) / 4 - 8px), calc((100vw - 80px) / 4), 200px); }
+#tabuleiro[data-cols="5"] .carta { width: min(calc((100dvh - 160px) / 5 - 8px), calc((100vw - 80px) / 5), 170px); height: min(calc((100dvh - 160px) / 5 - 8px), calc((100vw - 80px) / 5), 170px); }
+#tabuleiro[data-cols="6"] .carta { width: min(calc((100dvh - 170px) / 6 - 8px), calc((100vw - 80px) / 6), 155px); height: min(calc((100dvh - 170px) / 6 - 8px), calc((100vw - 80px) / 6), 155px); }
 
 .carta:hover .carta-interna {
     transform: rotateY(10deg);
@@ -373,10 +404,20 @@ h1 {
     object-fit: cover;
     border-radius: 14px;
     transition: transform 0.3s;
+
+    /* ============================================================
+     * ZOOM NA IMAGEM DO ANIMAL
+     * Aumente o valor de scale() para ver o animal maior:
+     *   scale(1.0) → tamanho original (sem zoom)
+     *   scale(1.3) → 30% de zoom (padrão atual)
+     *   scale(1.6) → 60% de zoom (bem próximo)
+     *   scale(2.0) → 100% de zoom (muito próximo)
+     * ============================================================ */
+    transform: scale(1.35);
 }
 
 .carta.virada .frente img {
-    transform: scale(1.03);
+    transform: scale(1.42); /* leve zoom extra ao virar a carta */
 }
 
 /* VERSO – logo */
