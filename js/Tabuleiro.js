@@ -5,33 +5,41 @@ export default class Tabuleiro {
         this.cartas = [];
     }
 
-    criarCartas() {
+    criarCartas(pares) {
         const tabuleiroElemento = document.getElementById("tabuleiro");
         if (!tabuleiroElemento) return;
 
         tabuleiroElemento.innerHTML = "";
 
-        // 1. Defina as imagens (pares)
-        const nomesImagens = ["anta.png", "CUTIA.png", "anta.png", "CUTIA.png"];
+        // Todas as imagens disponíveis (18 animais únicos)
+        const todasImagens = [
+            "ANTA.png", "CABEÇUDO.png", "CAITITU.png", "CARANGUEJO-VERMELHO.png",
+            "CARANGUEJO.png", "CUTIA.png", "INABÚ.png", "JABUTI.png",
+            "JACARETINGA.png", "JACU.png", "MATAMATÁ.png", "PERDIZ.png",
+            "PREGUIÇA.png", "QUEIXADA.png", "TAMANDUÁ.png", "TATU-CANASTRA.png",
+            "TATU.png", "VEADO VERMELHO.png"
+        ];
 
-        // 2. Transforme em objetos Carta
+        // Embaralha e seleciona a quantidade de pares necessária
+        const embaralhadas = [...todasImagens].sort(() => Math.random() - 0.5);
+        const selecionadas = embaralhadas.slice(0, pares);
+
+        // Duplica para formar pares e embaralha novamente
+        const nomesImagens = [...selecionadas, ...selecionadas].sort(() => Math.random() - 0.5);
+
+        // Transforma em objetos Carta
         this.cartas = nomesImagens.map((nome, index) => new Carta(index, nome));
 
-        // 3. Embaralhe a lista de objetos Carta
-        this.cartas.sort(() => Math.random() - 0.5);
-
-        // 4. Renderize no HTML
+        // Renderiza no HTML
         this.cartas.forEach(cartaObj => {
             const cartaElemento = document.createElement("div");
             cartaElemento.classList.add("carta");
-            
-            // Adicionamos o dataset para facilitar a comparação no Jogo.js
             cartaElemento.dataset.animal = cartaObj.imagem;
 
             cartaElemento.innerHTML = `
                 <div class="carta-interna">
                     <div class="frente">
-                        <img src="assets/cartas/${cartaObj.imagem}" alt="${cartaObj.imagem}">
+                        <img src="assets/cartas/${cartaObj.imagem}" alt="${cartaObj.imagem.replace('.png', '')}">
                     </div>
                     <div class="verso">
                         <img src="assets/background/ufam.png" alt="UFAM">

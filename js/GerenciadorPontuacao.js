@@ -3,12 +3,18 @@ export default class GerenciadorPontuacao {
         this.pontos = 0;
     }
 
-    adicionarPontos(valor = 10) {
+    /**
+     * Adiciona pontos. Pontos nunca ficam negativos.
+     */
+    adicionarPontos(valor = 100) {
         this.pontos += valor;
     }
 
-    removerPontos(valor = 5) {
-        this.pontos -= valor;
+    /**
+     * Remove pontos por erro. Mínimo zero.
+     */
+    removerPontos(valor = 10) {
+        this.pontos = Math.max(0, this.pontos - valor);
     }
 
     getPontuacao() {
@@ -18,5 +24,4 @@ export default class GerenciadorPontuacao {
     resetar() {
         this.pontos = 0;
     }
-    
 }

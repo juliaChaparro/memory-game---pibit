@@ -5,47 +5,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jogo da Memória Amazônico</title>
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-    <header>
-        <h1>Jogo da Memória Amazônico</h1>
-
-        <div class="informacoes">
-
-            <div class="info-box">
-                <strong>Pontos:</strong>
-                <span id="pontuacao">0</span>
+    <!-- ===== TELA INICIAL ===== -->
+    <div id="tela-inicial">
+        <div class="tela-inicial-card">
+            <div class="titulo-wrapper">
+                <span class="titulo-emoji">🌿</span>
+                <h1>Jogo da Memória<br><span class="titulo-destaque">Amazônico</span></h1>
             </div>
-
-            <div class="info-box">
-                <strong>Tempo:</strong>
-                <span id="tempo">00:00</span>
+            <p class="subtitulo">Escolha a dificuldade:</p>
+            <div class="botoes-grid">
+                <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
+                    <span class="btn-nivel">⭐</span>
+                    <span class="btn-tamanho">2×2</span>
+                    <span class="btn-info">4 cartas</span>
+                </button>
+                <button id="btn-3x3" class="btn-dificuldade" data-cols="3" data-pares="4">
+                    <span class="btn-nivel">⭐⭐</span>
+                    <span class="btn-tamanho">3×3*</span>
+                    <span class="btn-info">8 cartas</span>
+                </button>
+                <button id="btn-4x4" class="btn-dificuldade" data-cols="4" data-pares="8">
+                    <span class="btn-nivel">⭐⭐⭐</span>
+                    <span class="btn-tamanho">4×4</span>
+                    <span class="btn-info">16 cartas</span>
+                </button>
+                <button id="btn-5x5" class="btn-dificuldade" data-cols="5" data-pares="12">
+                    <span class="btn-nivel">⭐⭐⭐⭐</span>
+                    <span class="btn-tamanho">5×5*</span>
+                    <span class="btn-info">24 cartas</span>
+                </button>
+                <button id="btn-6x6" class="btn-dificuldade" data-cols="6" data-pares="18">
+                    <span class="btn-nivel">⭐⭐⭐⭐⭐</span>
+                    <span class="btn-tamanho">6×6</span>
+                    <span class="btn-info">36 cartas</span>
+                </button>
             </div>
-
+            <p class="nota-asterisco">* Grids ímpares usam 1 carta extra de bônus</p>
         </div>
-    </header>
+    </div>
 
-    <main>
+    <!-- ===== JOGO ===== -->
+    <div id="area-jogo" class="oculto">
 
-        <!-- As cartas serão criadas pelo JavaScript -->
-        <div id="tabuleiro"></div>
+        <header id="cabecalho-jogo">
+            <div class="header-inner">
+                <div class="header-titulo">
+                    <span>🌿</span>
+                    <h1>Memória Amazônico</h1>
+                </div>
+                <div class="informacoes">
+                    <div class="info-box" id="box-pares">
+                        <span class="info-icone">🃏</span>
+                        <div>
+                            <span class="info-label">Pares</span>
+                            <span class="info-valor" id="pares-encontrados">0</span>/<span class="info-valor" id="pares-total">0</span>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <span class="info-icone">⭐</span>
+                        <div>
+                            <span class="info-label">Pontos</span>
+                            <span class="info-valor" id="pontuacao">0</span>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <span class="info-icone">⏱️</span>
+                        <div>
+                            <span class="info-label">Tempo</span>
+                            <span class="info-valor" id="tempo">00:00</span>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <span class="info-icone">❌</span>
+                        <div>
+                            <span class="info-label">Erros</span>
+                            <span class="info-valor" id="erros">0</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="btn-voltar" class="btn-voltar">↩ Voltar</button>
+            </div>
+        </header>
 
-    </main>
+        <main id="area-tabuleiro">
+            <div id="tabuleiro"></div>
+        </main>
+
+    </div>
+
+    <!-- ===== MODAL VITÓRIA ===== -->
+    <div id="modal-vitoria" class="oculto">
+        <div class="modal-card">
+            <div class="modal-emoji">🏆</div>
+            <h2>Parabéns!</h2>
+            <p class="modal-subtitulo">Você encontrou todos os pares!</p>
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <span class="modal-stat-icone">⏱️</span>
+                    <span class="modal-stat-label">Tempo</span>
+                    <span class="modal-stat-valor" id="modal-tempo">--</span>
+                </div>
+                <div class="modal-stat">
+                    <span class="modal-stat-icone">❌</span>
+                    <span class="modal-stat-label">Erros</span>
+                    <span class="modal-stat-valor" id="modal-erros">--</span>
+                </div>
+                <div class="modal-stat destaque">
+                    <span class="modal-stat-icone">⭐</span>
+                    <span class="modal-stat-label">Pontuação</span>
+                    <span class="modal-stat-valor" id="modal-pontos">--</span>
+                </div>
+            </div>
+            <div class="modal-botoes">
+                <button id="modal-jogar-novamente" class="btn-modal-primario">Jogar Novamente</button>
+                <button id="modal-menu" class="btn-modal-secundario">Menu Principal</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
-
         import Jogo from "./js/Jogo.js";
 
-        const jogo = new Jogo();
+        let jogo = null;
+        let colunasAtuais = 4;
 
-        jogo.iniciar();
+        // Botões de dificuldade
+        document.querySelectorAll(".btn-dificuldade").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const pares = parseInt(btn.dataset.pares);
+                const cols  = parseInt(btn.dataset.cols);
+                iniciarJogo(pares, cols);
+            });
+        });
 
+        // Botão voltar
+        document.getElementById("btn-voltar").addEventListener("click", voltarMenu);
+
+        // Modal – jogar novamente
+        document.getElementById("modal-jogar-novamente").addEventListener("click", () => {
+            document.getElementById("modal-vitoria").classList.add("oculto");
+            iniciarJogo(jogo._pares, colunasAtuais);
+        });
+
+        // Modal – menu
+        document.getElementById("modal-menu").addEventListener("click", () => {
+            document.getElementById("modal-vitoria").classList.add("oculto");
+            voltarMenu();
+        });
+
+        function iniciarJogo(pares, cols) {
+            colunasAtuais = cols;
+
+            document.getElementById("tela-inicial").classList.add("oculto");
+            document.getElementById("area-jogo").classList.remove("oculto");
+
+            const tabuleiroEl = document.getElementById("tabuleiro");
+            tabuleiroEl.className = "";
+            tabuleiroEl.dataset.cols = cols;
+
+            // Atualiza o total de pares no header
+            document.getElementById("pares-total").textContent = pares;
+            document.getElementById("pares-encontrados").textContent = 0;
+            document.getElementById("erros").textContent = 0;
+            document.getElementById("pontuacao").textContent = 0;
+            document.getElementById("tempo").textContent = "00:00";
+
+            jogo = new Jogo(cols);
+            jogo._pares = pares;
+            jogo.iniciar(pares);
+        }
+
+        function voltarMenu() {
+            if (jogo) jogo.destruir();
+            document.getElementById("area-jogo").classList.add("oculto");
+            document.getElementById("tela-inicial").classList.remove("oculto");
+        }
     </script>
 
 </body>
-
 </html>
