@@ -22,12 +22,12 @@
             <p class="subtitulo">Escolha a dificuldade:</p>
             <div class="botoes-grid">
                 <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
-                    <span class="btn-nivel">⭐</span>
+                    <span class="btn-nivel">⭐⭐</span>
                     <span class="btn-tamanho">2×2</span>
                     <span class="btn-info">4 cartas</span>
                 </button>
                 <button id="btn-4x4" class="btn-dificuldade" data-cols="4" data-pares="8">
-                    <span class="btn-nivel">⭐⭐⭐</span>
+                    <span class="btn-nivel">⭐⭐⭐⭐</span>
                     <span class="btn-tamanho">4×4</span>
                     <span class="btn-info">16 cartas</span>
                 </button>
@@ -55,7 +55,8 @@
                         <span class="info-icone">🃏</span>
                         <div>
                             <span class="info-label">Pares</span>
-                            <span class="info-valor" id="pares-encontrados">0</span>/<span class="info-valor" id="pares-total">0</span>
+                            <span class="info-valor" id="pares-encontrados">0</span>/<span class="info-valor"
+                                id="pares-total">0</span>
                         </div>
                     </div>
                     <div class="info-box">
@@ -130,7 +131,7 @@
         document.querySelectorAll(".btn-dificuldade").forEach(btn => {
             btn.addEventListener("click", () => {
                 const pares = parseInt(btn.dataset.pares);
-                const cols  = parseInt(btn.dataset.cols);
+                const cols = parseInt(btn.dataset.cols);
                 iniciarJogo(pares, cols);
             });
         });
@@ -180,4 +181,5 @@
     </script>
 
 </body>
+
 </html>
