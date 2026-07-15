@@ -181,7 +181,7 @@ h1 {
     background: rgba(15, 38, 18, 0.85);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(255,255,255,0.08);
-    padding: 14px 24px;
+    padding: 8px 20px; /* era 14px 24px - reduzido */
 }
 
 .header-inner {
@@ -196,23 +196,23 @@ h1 {
 .header-titulo {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 1.3rem;
+    gap: 8px;
+    font-size: 1.1rem;
     font-weight: 800;
     white-space: nowrap;
 }
 
-.header-titulo span { font-size: 1.4rem; }
+.header-titulo span { font-size: 1.15rem; }
 
 .header-titulo h1 {
-    font-size: 1.3rem;
+    font-size: 1.05rem;
     font-weight: 800;
     letter-spacing: -0.3px;
 }
 
 .informacoes {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     flex: 1;
     justify-content: center;
     flex-wrap: wrap;
@@ -221,24 +221,24 @@ h1 {
 .info-box {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 8px 16px;
+    border-radius: 10px;
+    padding: 5px 12px;   /* era 8px 16px */
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-width: 100px;
+    gap: 7px;
+    min-width: 80px;     /* era 100px */
 }
 
-.info-icone { font-size: 1.2rem; line-height: 1; }
+.info-icone { font-size: 0.95rem; line-height: 1; }
 
 .info-box > div {
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.15;
 }
 
 .info-label {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: rgba(255,255,255,0.5);
@@ -246,7 +246,7 @@ h1 {
 }
 
 .info-valor {
-    font-size: 1.05rem;
+    font-size: 0.9rem;
     font-weight: 800;
     color: #4ade80;
 }
@@ -254,13 +254,13 @@ h1 {
 .btn-voltar {
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 10px;
+    border-radius: 8px;
     color: rgba(255,255,255,0.7);
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 600;
     font-family: 'Outfit', Arial, sans-serif;
-    padding: 8px 16px;
+    padding: 6px 12px;  /* era 8px 16px */
     transition: all 0.2s;
     white-space: nowrap;
 }
@@ -277,7 +277,8 @@ h1 {
 #area-tabuleiro {
     flex: 1;
     min-height: 0;           /* essencial para o flex não ultrapassar a tela */
-    overflow: hidden;        /* garante que nada extrapola a viewport */
+    overflow-y: auto;        /* permite scroll vertical caso a tela seja pequena */
+    overflow-x: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -314,14 +315,8 @@ h1 {
 /* 2×2 – máximo: 320px por carta (altere para testar) */
 #tabuleiro[data-cols="2"] { grid-template-columns: repeat(2, min(calc((100dvh - 130px) / 2 - 5px), calc((100vw - 80px) / 2), 320px)); }
 
-/* 3×3 – máximo: 250px por carta */
-#tabuleiro[data-cols="3"] { grid-template-columns: repeat(3, min(calc((100dvh - 140px) / 3 - 7px), calc((100vw - 80px) / 3), 250px)); }
-
 /* 4×4 – máximo: 200px por carta */
 #tabuleiro[data-cols="4"] { grid-template-columns: repeat(4, min(calc((100dvh - 150px) / 4 - 8px), calc((100vw - 80px) / 4), 200px)); }
-
-/* 5×5 – máximo: 170px por carta */
-#tabuleiro[data-cols="5"] { grid-template-columns: repeat(5, min(calc((100dvh - 160px) / 5 - 8px), calc((100vw - 80px) / 5), 170px)); }
 
 /* 6×6 – máximo: 155px por carta */
 #tabuleiro[data-cols="6"] { grid-template-columns: repeat(6, min(calc((100dvh - 170px) / 6 - 8px), calc((100vw - 80px) / 6), 155px)); }
@@ -334,14 +329,9 @@ h1 {
     perspective: 1200px;
     cursor: pointer;
     position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
 }
-
-/* Altura = largura (quadrado) – os valores espelham exatamente as colunas acima */
-#tabuleiro[data-cols="2"] .carta { width: min(calc((100dvh - 130px) / 2 - 5px), calc((100vw - 80px) / 2), 320px); height: min(calc((100dvh - 130px) / 2 - 5px), calc((100vw - 80px) / 2), 320px); }
-#tabuleiro[data-cols="3"] .carta { width: min(calc((100dvh - 140px) / 3 - 7px), calc((100vw - 80px) / 3), 250px); height: min(calc((100dvh - 140px) / 3 - 7px), calc((100vw - 80px) / 3), 250px); }
-#tabuleiro[data-cols="4"] .carta { width: min(calc((100dvh - 150px) / 4 - 8px), calc((100vw - 80px) / 4), 200px); height: min(calc((100dvh - 150px) / 4 - 8px), calc((100vw - 80px) / 4), 200px); }
-#tabuleiro[data-cols="5"] .carta { width: min(calc((100dvh - 160px) / 5 - 8px), calc((100vw - 80px) / 5), 170px); height: min(calc((100dvh - 160px) / 5 - 8px), calc((100vw - 80px) / 5), 170px); }
-#tabuleiro[data-cols="6"] .carta { width: min(calc((100dvh - 170px) / 6 - 8px), calc((100vw - 80px) / 6), 155px); height: min(calc((100dvh - 170px) / 6 - 8px), calc((100vw - 80px) / 6), 155px); }
 
 .carta:hover .carta-interna {
     transform: rotateY(10deg);
@@ -632,17 +622,12 @@ h1 {
 /* Telas médias (notebook menor, tablet landscape) */
 @media (max-width: 1100px) {
     #tabuleiro[data-cols="6"] { grid-template-columns: repeat(6, min(13vw, 130px)); }
-    #tabuleiro[data-cols="6"] .carta { width: min(13vw, 130px); height: min(13vw, 130px); }
 }
 
 /* Tablet portrait */
 @media (max-width: 860px) {
-    /* 5x5: quebra para 5 colunas menores */
-    #tabuleiro[data-cols="5"] { grid-template-columns: repeat(5, min(18vw, 140px)); }
-    #tabuleiro[data-cols="5"] .carta { width: min(18vw, 140px); height: min(18vw, 140px); }
     /* 6x6: quebra para 4 colunas – distribui melhor */
     #tabuleiro[data-cols="6"] { grid-template-columns: repeat(4, min(22vw, 150px)); }
-    #tabuleiro[data-cols="6"] .carta { width: min(22vw, 150px); height: min(22vw, 150px); }
 }
 
 /* Mobile */
@@ -653,20 +638,11 @@ h1 {
     #tabuleiro { gap: 10px; }
 
     #tabuleiro[data-cols="2"] { grid-template-columns: repeat(2, min(42vw, 200px)); }
-    #tabuleiro[data-cols="2"] .carta { width: min(42vw, 200px); height: min(42vw, 200px); }
-
-    #tabuleiro[data-cols="3"] { grid-template-columns: repeat(3, min(28vw, 150px)); }
-    #tabuleiro[data-cols="3"] .carta { width: min(28vw, 150px); height: min(28vw, 150px); }
 
     #tabuleiro[data-cols="4"] { grid-template-columns: repeat(4, min(21vw, 110px)); }
-    #tabuleiro[data-cols="4"] .carta { width: min(21vw, 110px); height: min(21vw, 110px); }
 
-    /* 5x5 e 6x6: 3 colunas no celular */
-    #tabuleiro[data-cols="5"] { grid-template-columns: repeat(3, min(30vw, 130px)); }
-    #tabuleiro[data-cols="5"] .carta { width: min(30vw, 130px); height: min(30vw, 130px); }
-
+    /* 6x6: 3 colunas no celular */
     #tabuleiro[data-cols="6"] { grid-template-columns: repeat(3, min(30vw, 120px)); }
-    #tabuleiro[data-cols="6"] .carta { width: min(30vw, 120px); height: min(30vw, 120px); }
 
     .modal-card { padding: 30px 20px; }
     .modal-card h2 { font-size: 1.8rem; }
