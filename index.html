@@ -19,6 +19,12 @@
                 <span class="titulo-emoji">🌿</span>
                 <h1>Jogo da Memória<br><span class="titulo-destaque">Amazônico</span></h1>
             </div>
+            <p class="subtitulo">Escolha o modo de jogo:</p>
+            <div class="modo-selecao">
+                <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador</button>
+                <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (1v1)</button>
+            </div>
+            
             <p class="subtitulo">Escolha a dificuldade:</p>
             <div class="botoes-grid">
                 <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
@@ -50,7 +56,8 @@
                     <span>🌿</span>
                     <h1>Memória Amazônico</h1>
                 </div>
-                <div class="informacoes">
+                <!-- SINGLE PLAYER -->
+                <div class="informacoes" id="info-single">
                     <div class="info-box" id="box-pares">
                         <span class="info-icone">🃏</span>
                         <div>
@@ -81,11 +88,41 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- MULTIPLAYER -->
+                <div class="informacoes oculto" id="info-multi">
+                    <div class="info-box player-box" id="box-p1">
+                        <span class="info-icone p1-icon">🔵</span>
+                        <div>
+                            <span class="info-label">Jogador 1</span>
+                            <span class="info-valor" id="pontuacao-p1">0</span>
+                            <span class="info-label" id="pares-p1">0 pares</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <span class="info-icone">⏱️</span>
+                        <div>
+                            <span class="info-label">Tempo</span>
+                            <span class="info-valor" id="tempo-multi">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="info-box player-box" id="box-p2">
+                        <span class="info-icone p2-icon">🔴</span>
+                        <div>
+                            <span class="info-label">Jogador 2</span>
+                            <span class="info-valor" id="pontuacao-p2">0</span>
+                            <span class="info-label" id="pares-p2">0 pares</span>
+                        </div>
+                    </div>
+                </div>
                 <button id="btn-voltar" class="btn-voltar">↩ Voltar</button>
             </div>
         </header>
 
         <main id="area-tabuleiro">
+            <div id="alerta-turno" class="oculto"></div>
             <div id="tabuleiro"></div>
         </main>
 
@@ -96,7 +133,7 @@
         <div class="modal-card">
             <div class="modal-emoji">🏆</div>
             <h2>Parabéns!</h2>
-            <p class="modal-subtitulo">Você encontrou todos os pares!</p>
+            <p class="modal-subtitulo" id="modal-mensagem-vitoria">Você encontrou todos os pares!</p>
             <div class="modal-stats">
                 <div class="modal-stat">
                     <span class="modal-stat-icone">⏱️</span>
@@ -126,13 +163,23 @@
 
         let jogo = null;
         let colunasAtuais = 4;
+        let modoSelecionado = 1;
+
+        // Botões de Modo
+        document.querySelectorAll(".btn-modo").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".btn-modo").forEach(b => b.classList.remove("ativo"));
+                btn.classList.add("ativo");
+                modoSelecionado = parseInt(btn.dataset.modo);
+            });
+        });
 
         // Botões de dificuldade
         document.querySelectorAll(".btn-dificuldade").forEach(btn => {
             btn.addEventListener("click", () => {
                 const pares = parseInt(btn.dataset.pares);
                 const cols = parseInt(btn.dataset.cols);
-                iniciarJogo(pares, cols);
+                iniciarJogo(pares, cols, modoSelecionado);
             });
         });
 
@@ -142,7 +189,7 @@
         // Modal – jogar novamente
         document.getElementById("modal-jogar-novamente").addEventListener("click", () => {
             document.getElementById("modal-vitoria").classList.add("oculto");
-            iniciarJogo(jogo._pares, colunasAtuais);
+            iniciarJogo(jogo._pares, colunasAtuais, modoSelecionado);
         });
 
         // Modal – menu
@@ -151,8 +198,9 @@
             voltarMenu();
         });
 
-        function iniciarJogo(pares, cols) {
+        function iniciarJogo(pares, cols, modo) {
             colunasAtuais = cols;
+            modoSelecionado = modo;
 
             document.getElementById("tela-inicial").classList.add("oculto");
             document.getElementById("area-jogo").classList.remove("oculto");
@@ -161,14 +209,28 @@
             tabuleiroEl.className = "";
             tabuleiroEl.dataset.cols = cols;
 
-            // Atualiza o total de pares no header
-            document.getElementById("pares-total").textContent = pares;
-            document.getElementById("pares-encontrados").textContent = 0;
-            document.getElementById("erros").textContent = 0;
-            document.getElementById("pontuacao").textContent = 0;
-            document.getElementById("tempo").textContent = "00:00";
+            // Ajusta o cabeçalho dependendo do modo
+            if (modo === 1) {
+                document.getElementById("info-single").classList.remove("oculto");
+                document.getElementById("info-multi").classList.add("oculto");
+                
+                document.getElementById("pares-total").textContent = pares;
+                document.getElementById("pares-encontrados").textContent = 0;
+                document.getElementById("erros").textContent = 0;
+                document.getElementById("pontuacao").textContent = 0;
+                document.getElementById("tempo").textContent = "00:00";
+            } else {
+                document.getElementById("info-single").classList.add("oculto");
+                document.getElementById("info-multi").classList.remove("oculto");
+                
+                document.getElementById("pontuacao-p1").textContent = 0;
+                document.getElementById("pontuacao-p2").textContent = 0;
+                document.getElementById("pares-p1").textContent = "0 pares";
+                document.getElementById("pares-p2").textContent = "0 pares";
+                document.getElementById("tempo-multi").textContent = "00:00";
+            }
 
-            jogo = new Jogo(cols);
+            jogo = new Jogo(cols, modo);
             jogo._pares = pares;
             jogo.iniciar(pares);
         }

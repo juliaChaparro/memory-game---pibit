@@ -164,6 +164,43 @@ h1 {
 }
 
 /* ======================================== */
+/* SELEÇÃO DE MODO DE JOGO                  */
+/* ======================================== */
+
+.modo-selecao {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.btn-modo {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'Outfit', Arial, sans-serif;
+    padding: 12px 24px;
+    transition: all 0.25s;
+}
+
+.btn-modo:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.btn-modo.ativo {
+    background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1));
+    border-color: rgba(74,222,128,0.5);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(74,222,128,0.15);
+}
+
+/* ======================================== */
 /* CABEÇALHO DO JOGO                        */
 /* ======================================== */
 
@@ -250,6 +287,30 @@ h1 {
     font-weight: 800;
     color: #4ade80;
 }
+
+.player-box {
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.turno-ativo {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+#box-p1.turno-ativo {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 20px rgba(96,165,250,0.5);
+}
+
+#box-p2.turno-ativo {
+    border-color: #f87171 !important;
+    box-shadow: 0 0 20px rgba(248,113,113,0.5);
+}
+
+.p1-icon { color: #60a5fa; }
+.p2-icon { color: #f87171; }
 
 .btn-voltar {
     background: rgba(255,255,255,0.07);
@@ -481,6 +542,52 @@ h1 {
 @keyframes float-up {
     0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
     100% { opacity: 0; transform: translateX(-50%) translateY(-60px); }
+}
+
+/* Aviso de Turno (Multiplayer) */
+#alerta-turno {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 38, 18, 0.95);
+    backdrop-filter: blur(10px);
+    border: 3px solid #fff;
+    color: #fff;
+    font-size: 2.8rem;
+    font-weight: 900;
+    padding: 24px 50px;
+    border-radius: 20px;
+    z-index: 1000;
+    pointer-events: none;
+    text-align: center;
+    white-space: nowrap;
+    opacity: 0; /* Começa invisível, a animação lida com a opacidade */
+}
+
+#alerta-turno.p1 {
+    border-color: #60a5fa;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 50px rgba(96,165,250,0.4);
+}
+#alerta-turno.p1 span { color: #60a5fa; }
+
+#alerta-turno.p2 {
+    border-color: #f87171;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 50px rgba(248,113,113,0.4);
+}
+#alerta-turno.p2 span { color: #f87171; }
+
+.animacao-alerta {
+    animation: alerta-pop 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation-delay: 0.4s;
+}
+
+@keyframes alerta-pop {
+    0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.8); }
+    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    25%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    85%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -80%) scale(1.1); }
 }
 
 /* ======================================== */

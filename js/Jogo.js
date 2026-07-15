@@ -5,13 +5,21 @@ import GerenciadorInterface from "./GerenciadorInterface.js";
 import GerenciadorSom from "./GerenciadorSom.js";
 
 export default class Jogo {
-    constructor(colunas) {
+    constructor(colunas, modo = 1) {
         this.colunas = colunas;
+        this.modo = modo;
         this.tabuleiro = new Tabuleiro();
         this.cronometro = new Cronometro();
-        this.pontuacao = new GerenciadorPontuacao();
+        this.pontuacao = new GerenciadorPontuacao(); // Usado para Single Player
         this.interface = new GerenciadorInterface();
         this.som = new GerenciadorSom();
+
+        // Multiplayer states
+        this.pontuacaoP1 = new GerenciadorPontuacao();
+        this.pontuacaoP2 = new GerenciadorPontuacao();
+        this.paresP1 = 0;
+        this.paresP2 = 0;
+        this.turnoAtual = 1; // 1 ou 2
 
         this.primeiraCarta = null;
         this.segundaCarta = null;
@@ -31,12 +39,32 @@ export default class Jogo {
         this.erros = 0;
         this._pares = pares;
 
+        // Reset multiplayer
+        this.paresP1 = 0;
+        this.paresP2 = 0;
+        this.pontuacaoP1.resetar();
+        this.pontuacaoP2.resetar();
+        this.pontuacao.resetar();
+        this.turnoAtual = 1;
+
+        if (this.modo === 2) {
+            this.interface.atualizarTurno(this.turnoAtual, false); // Não mostra popup no início
+            this.interface.atualizarPontuacaoMulti(0, 0);
+            this.interface.atualizarParesMulti(0, 0);
+        }
+
         this.tabuleiro.criarCartas(pares);
 
         // Cronômetro — atualiza a interface a cada segundo
         this.cronometro.iniciar((segundosAtuais) => {
-            this.interface.atualizarTempo(segundosAtuais);
+            this.interface.atualizarTempo(segundosAtuais, this.modo);
         });
+
+        // Bloqueia cliques nos primeiros milissegundos para evitar toques duplos acidentais ao trocar de tela
+        this.bloqueado = true;
+        setTimeout(() => {
+            this.bloqueado = false;
+        }, 600);
 
         // Configura os cliques nas cartas
         this.interface.configurarEventosCartas((carta) => {
@@ -79,11 +107,24 @@ export default class Jogo {
 
             const pontosGanhos = pontosBase + bonusVelocidade;
 
-            this.pontuacao.adicionarPontos(pontosGanhos);
             this.paresEncontrados++;
 
-            this.interface.atualizarPontuacao(this.pontuacao.getPontuacao());
-            this.interface.atualizarParesEncontrados(this.paresEncontrados);
+            if (this.modo === 1) {
+                this.pontuacao.adicionarPontos(pontosGanhos);
+                this.interface.atualizarPontuacao(this.pontuacao.getPontuacao());
+                this.interface.atualizarParesEncontrados(this.paresEncontrados);
+            } else {
+                if (this.turnoAtual === 1) {
+                    this.pontuacaoP1.adicionarPontos(pontosGanhos);
+                    this.paresP1++;
+                } else {
+                    this.pontuacaoP2.adicionarPontos(pontosGanhos);
+                    this.paresP2++;
+                }
+                this.interface.atualizarPontuacaoMulti(this.pontuacaoP1.getPontuacao(), this.pontuacaoP2.getPontuacao());
+                this.interface.atualizarParesMulti(this.paresP1, this.paresP2);
+                // No acerto, o turno não muda (jogador joga novamente)
+            }
 
             // Marca cartas como encontradas
             this.primeiraCarta.classList.add("encontrado");
@@ -104,10 +145,23 @@ export default class Jogo {
             // Erro: penalidade
             this.erros++;
             const penalidade = 10;
-            this.pontuacao.removerPontos(penalidade);
 
-            this.interface.atualizarPontuacao(this.pontuacao.getPontuacao());
-            this.interface.atualizarErros(this.erros);
+            if (this.modo === 1) {
+                this.pontuacao.removerPontos(penalidade);
+                this.interface.atualizarPontuacao(this.pontuacao.getPontuacao());
+                this.interface.atualizarErros(this.erros);
+            } else {
+                if (this.turnoAtual === 1) {
+                    this.pontuacaoP1.removerPontos(penalidade);
+                } else {
+                    this.pontuacaoP2.removerPontos(penalidade);
+                }
+                this.interface.atualizarPontuacaoMulti(this.pontuacaoP1.getPontuacao(), this.pontuacaoP2.getPontuacao());
+                // No erro, passa a vez
+                this.turnoAtual = this.turnoAtual === 1 ? 2 : 1;
+                this.interface.atualizarTurno(this.turnoAtual);
+            }
+
             this.interface.mostrarPontosFlutuantes(this.segundaCarta, `-${penalidade}`, false);
 
             this.desvirarCartas();
@@ -139,9 +193,11 @@ export default class Jogo {
 
         const tempoFinal = this.cronometro.segundos;
         const pontosFinal = this.pontuacao.getPontuacao();
+        const ptsP1 = this.pontuacaoP1.getPontuacao();
+        const ptsP2 = this.pontuacaoP2.getPontuacao();
 
         this.som.tocarVitoria();
-        this.interface.mostrarModalVitoria(tempoFinal, this.erros, pontosFinal);
+        this.interface.mostrarModalVitoria(tempoFinal, this.erros, pontosFinal, this.modo, ptsP1, ptsP2);
     }
 
     destruir() {
