@@ -24,7 +24,7 @@
                 <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador</button>
                 <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (1v1)</button>
             </div>
-            
+
             <p class="subtitulo">Escolha a dificuldade:</p>
             <div class="botoes-grid">
                 <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
@@ -99,7 +99,7 @@
                             <span class="info-label" id="pares-p1">0 pares</span>
                         </div>
                     </div>
-                    
+
                     <div class="info-box">
                         <span class="info-icone">⏱️</span>
                         <div>
@@ -213,7 +213,7 @@
             if (modo === 1) {
                 document.getElementById("info-single").classList.remove("oculto");
                 document.getElementById("info-multi").classList.add("oculto");
-                
+
                 document.getElementById("pares-total").textContent = pares;
                 document.getElementById("pares-encontrados").textContent = 0;
                 document.getElementById("erros").textContent = 0;
@@ -222,7 +222,7 @@
             } else {
                 document.getElementById("info-single").classList.add("oculto");
                 document.getElementById("info-multi").classList.remove("oculto");
-                
+
                 document.getElementById("pontuacao-p1").textContent = 0;
                 document.getElementById("pontuacao-p2").textContent = 0;
                 document.getElementById("pares-p1").textContent = "0 pares";
