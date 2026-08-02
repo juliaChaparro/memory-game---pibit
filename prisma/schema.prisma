@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model GameSession {
+  id        Int      @id @default(autoincrement())
+  modo      Int      
+  pares     Int
+  tempo     Int
+  pontuacao Int
+  erros     Int
+  createdAt DateTime @default(now())
+}

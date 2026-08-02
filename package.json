@@ -1,0 +1,32 @@
+{
+  "name": "memory-game---pibit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juliaChaparro/memory-game---pibit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/juliaChaparro/memory-game---pibit/issues"
+  },
+  "homepage": "https://github.com/juliaChaparro/memory-game---pibit#readme",
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@prisma/adapter-libsql": "^7.9.0",
+    "@prisma/client": "^7.9.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^7.9.0"
+  }
+}

@@ -1,0 +1,10 @@
+-- CreateTable
+CREATE TABLE "GameSession" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "modo" INTEGER NOT NULL,
+    "pares" INTEGER NOT NULL,
+    "tempo" INTEGER NOT NULL,
+    "pontuacao" INTEGER NOT NULL,
+    "erros" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

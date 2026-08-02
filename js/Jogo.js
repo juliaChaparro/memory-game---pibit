@@ -34,6 +34,7 @@ export default class Jogo {
     }
 
     iniciar(pares) {
+        console.log(`[Jogo] Iniciando jogo com ${pares} pares. Modo: ${this.modo === 1 ? 'Single Player' : 'Multiplayer'}`);
         this.totalPares = pares;
         this.paresEncontrados = 0;
         this.erros = 0;
@@ -73,6 +74,7 @@ export default class Jogo {
     }
 
     lidarComClique(carta) {
+        console.log(`[Jogo] Clique na carta: ${carta.dataset.animal || 'desconhecido'}`);
         // Bloqueia cliques se o jogo estiver bloqueado ou se a carta já estiver encontrada/virada
         if (this.bloqueado) return;
         if (carta.classList.contains("virada")) return;
@@ -96,6 +98,7 @@ export default class Jogo {
 
     verificarPar() {
         const acertou = this.primeiraCarta.dataset.animal === this.segundaCarta.dataset.animal;
+        console.log(`[Jogo] Verificando par: ${this.primeiraCarta.dataset.animal} e ${this.segundaCarta.dataset.animal} -> ${acertou ? 'ACERTO' : 'ERRO'}`);
 
         if (acertou) {
             // — Calcula pontos base (mais por dificuldade)
@@ -189,12 +192,29 @@ export default class Jogo {
     }
 
     finalizar() {
+        console.log('[Jogo] Jogo finalizado! Exibindo modal de vitória.');
         this.cronometro.parar(); // ← Para o tempo ao terminar
 
         const tempoFinal = this.cronometro.segundos;
         const pontosFinal = this.pontuacao.getPontuacao();
         const ptsP1 = this.pontuacaoP1.getPontuacao();
         const ptsP2 = this.pontuacaoP2.getPontuacao();
+
+        // Envia dados para o backend (AJAX)
+        fetch('http://localhost:3333/api/game-sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                modo: this.modo,
+                pares: this.totalPares,
+                tempo: tempoFinal,
+                pontuacao: this.modo === 1 ? pontosFinal : Math.max(ptsP1, ptsP2),
+                erros: this.erros
+            })
+        }).then(res => {
+            if (res.ok) console.log('Partida salva com sucesso no banco de dados!');
+            else console.log('Erro ao salvar partida.');
+        }).catch(err => console.error('Erro de conexão com o servidor', err));
 
         this.som.tocarVitoria();
         this.interface.mostrarModalVitoria(tempoFinal, this.erros, pontosFinal, this.modo, ptsP1, ptsP2);
