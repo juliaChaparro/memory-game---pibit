@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: memory-game-app
+    ports:
+      - "3333:3333"
+    volumes:
+      # Volume persistente para salvar o banco SQLite localmente sem perdê-lo ao reiniciar o container
+      - sqlite_data:/usr/src/app/db
+    environment:
+      - DATABASE_URL=file:/usr/src/app/db/dev.db
+    restart: always
+
+volumes:
+  sqlite_data:

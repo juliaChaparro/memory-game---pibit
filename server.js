@@ -4,7 +4,8 @@ const { createClient } = require('@libsql/client');
 const { PrismaLibSql } = require('@prisma/adapter-libsql');
 const { PrismaClient } = require('@prisma/client');
 
-const libsql = createClient({ url: 'file:dev.db' });
+const dbUrl = process.env.DATABASE_URL || 'file:dev.db';
+const libsql = createClient({ url: dbUrl });
 const adapter = new PrismaLibSql(libsql);
 const prisma = new PrismaClient({ adapter });
 const app = express();
@@ -46,6 +47,17 @@ app.get('/api/game-sessions', async (req, res) => {
 });
 
 const PORT = 3333;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Servidor rodando na porta ${PORT}`);
+    
+    // Garantir que a pasta do banco SQLite exista no container se configurada em outro local
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('/db/')) {
+        const fs = require('fs');
+        const path = require('path');
+        const dbDir = path.join(__dirname, 'db');
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+            console.log('Pasta /db criada para o SQLite.');
+        }
+    }
 });
