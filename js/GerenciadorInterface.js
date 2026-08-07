@@ -76,25 +76,28 @@ export default class GerenciadorInterface {
             }
         }
 
-        if (!mostrarPopup) return;
+        const alerta = document.getElementById("alerta-turno");
+        if (!alerta) return;
+
+        if (!mostrarPopup) {
+            alerta.classList.add("oculto");
+            return;
+        }
 
         // Exibir aviso flutuante gigante de turno
-        const alerta = document.getElementById("alerta-turno");
-        if (alerta) {
-            // Remove as classes para reiniciar a animação e reflow
-            alerta.classList.remove("animacao-alerta", "p1", "p2", "oculto");
-            void alerta.offsetWidth; // Força o reflow para a animação CSS reiniciar
-            
-            if (turno === 1) {
-                alerta.innerHTML = `Vez do <br><span>Jogador 1</span>`;
-                alerta.classList.add("p1");
-            } else {
-                alerta.innerHTML = `Vez do <br><span>Jogador 2</span>`;
-                alerta.classList.add("p2");
-            }
-            
-            alerta.classList.add("animacao-alerta");
+        // Remove as classes para reiniciar a animação e reflow
+        alerta.classList.remove("animacao-alerta", "p1", "p2", "oculto");
+        void alerta.offsetWidth; // Força o reflow para a animação CSS reiniciar
+        
+        if (turno === 1) {
+            alerta.innerHTML = `Vez do <br><span>Jogador 1</span>`;
+            alerta.classList.add("p1");
+        } else {
+            alerta.innerHTML = `Vez do <br><span>Jogador 2</span>`;
+            alerta.classList.add("p2");
         }
+        
+        alerta.classList.add("animacao-alerta");
     }
     // ------------------------------
 

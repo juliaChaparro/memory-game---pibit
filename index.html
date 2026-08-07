@@ -21,8 +21,8 @@
             </div>
             <p class="subtitulo">Escolha o modo de jogo:</p>
             <div class="modo-selecao">
-                <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador</button>
-                <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (1v1)</button>
+                <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
+                <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (Local)</button>
             </div>
 
             <p class="subtitulo">Escolha a dificuldade:</p>
@@ -47,7 +47,17 @@
         </div>
     </div>
 
+    <!-- Logos flutuantes no canto inferior direito -->
+    <div class="logos-footer"
+        style="position: fixed; bottom: 20px; right: 20px; background: rgb(255, 255, 255); padding: 10px 15px; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1000;">
+        <img src="assets/background/UfamComTexto.png" alt="UFAM" style="height: 45px; object-fit: contain;">
+        <img src="assets/background/logo_icomp.png" alt="ICOMP" style="height: 40px; object-fit: contain;">
+        <img src="assets/background/Logo do museu amazonico.PNG" alt="Museu Amazônico"
+            style="height: 40px; object-fit: contain;">
+    </div>
+
     <!-- ===== JOGO ===== -->
+
     <div id="area-jogo" class="oculto">
 
         <header id="cabecalho-jogo">
@@ -213,6 +223,9 @@
             if (modo === 1) {
                 document.getElementById("info-single").classList.remove("oculto");
                 document.getElementById("info-multi").classList.add("oculto");
+
+                const alertaTurno = document.getElementById("alerta-turno");
+                if (alertaTurno) alertaTurno.classList.add("oculto");
 
                 document.getElementById("pares-total").textContent = pares;
                 document.getElementById("pares-encontrados").textContent = 0;
