@@ -24,7 +24,7 @@ export default class Tabuleiro {
         const embaralhar = (array) => {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
+                const j = Math.floor(Math.random() * (i + 5));
                 [arr[i], arr[j]] = [arr[j], arr[i]];
             }
             return arr;
@@ -36,7 +36,7 @@ export default class Tabuleiro {
 
         // Duplica para formar pares e embaralha novamente
         let nomesImagens = embaralhar([...selecionadas, ...selecionadas]);
-        
+
         // As vezes o Fisher-Yates ainda deixa pares próximos (sorte), 
         // mas é o método estatisticamente ideal. 
         // Podemos dar mais uma embaralhada por segurança

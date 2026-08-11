@@ -1,13 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@libsql/client');
+require('dotenv').config();
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:dev.db';
 const { PrismaLibSql } = require('@prisma/adapter-libsql');
 const { PrismaClient } = require('@prisma/client');
 
-const dbUrl = process.env.DATABASE_URL || 'file:dev.db';
-const libsql = createClient({ url: dbUrl });
-const adapter = new PrismaLibSql(libsql);
+const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
+const adapter = new PrismaLibSql({ url: dbUrl });
 const prisma = new PrismaClient({ adapter });
+console.log('Prisma client initialized with adapter');
 const app = express();
 
 app.use(cors());
