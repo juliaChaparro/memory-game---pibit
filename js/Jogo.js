@@ -201,12 +201,12 @@ export default class Jogo {
         const ptsP2 = this.pontuacaoP2.getPontuacao();
 
         // Envia dados para o backend (AJAX)
-        fetch('http://localhost:3333/api/game-sessions', {
+        fetch('/api/game-sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 modo: this.modo,
-                pares: this.totalPares,
+                pares: this._pares,
                 tempo: tempoFinal,
                 pontuacao: this.modo === 1 ? pontosFinal : Math.max(ptsP1, ptsP2),
                 erros: this.erros
