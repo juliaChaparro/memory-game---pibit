@@ -7,7 +7,7 @@ import GerenciadorSom from "./GerenciadorSom.js";
 export default class Jogo {
     constructor(colunas, modo = 1) {
         this.colunas = colunas;
-        this.modo = modo;
+        this.modo = modo; // 1: Single, 2: Local, 3: Online
         this.tabuleiro = new Tabuleiro();
         this.cronometro = new Cronometro();
         this.pontuacao = new GerenciadorPontuacao(); // Usado para Single Player
@@ -31,10 +31,13 @@ export default class Jogo {
 
         // referência para guardar os pares (usada pelo menu jogar novamente)
         this._pares = 0;
+        
+        this.socketClient = null;
+        this.turnTimerInterval = null;
     }
 
     iniciar(pares) {
-        console.log(`[Jogo] Iniciando jogo com ${pares} pares. Modo: ${this.modo === 1 ? 'Single Player' : 'Multiplayer'}`);
+        console.log(`[Jogo] Iniciando jogo com ${pares} pares. Modo: ${this.modo}`);
         this.totalPares = pares;
         this.paresEncontrados = 0;
         this.erros = 0;
@@ -49,38 +52,145 @@ export default class Jogo {
         this.turnoAtual = 1;
 
         if (this.modo === 2) {
-            this.interface.atualizarTurno(this.turnoAtual, false); // Não mostra popup no início
+            this.interface.atualizarTurno(this.turnoAtual, false);
             this.interface.atualizarPontuacaoMulti(0, 0);
             this.interface.atualizarParesMulti(0, 0);
         }
 
         this.tabuleiro.criarCartas(pares);
 
-        // Cronômetro — atualiza a interface a cada segundo
         this.cronometro.iniciar((segundosAtuais) => {
             this.interface.atualizarTempo(segundosAtuais, this.modo);
         });
 
-        // Bloqueia cliques nos primeiros milissegundos para evitar toques duplos acidentais ao trocar de tela
         this.bloqueado = true;
         setTimeout(() => {
             this.bloqueado = false;
         }, 600);
 
-        // Configura os cliques nas cartas
         this.interface.configurarEventosCartas((carta) => {
             this.lidarComClique(carta);
         });
     }
 
+    iniciarOnline(state) {
+        console.log(`[Jogo] Iniciando modo online`);
+        this.totalPares = state.pairs;
+        this.estadoOnline = state; // Guardar o estado no Jogo para não perder a referência na closure
+        this.tabuleiro.renderizarCartasServidor(state.board);
+        
+        this.interface.atualizarTurno(state.turnIndex + 1, false);
+        this.interface.atualizarPontuacaoMulti(0, 0);
+        this.interface.atualizarParesMulti(0, 0);
+
+        this.cronometro.iniciar((segundosAtuais) => {
+            this.interface.atualizarTempo(segundosAtuais, this.modo);
+        });
+
+        this.interface.configurarEventosCartas((carta) => {
+            if (this.bloqueado) return;
+            const myPlayerIndex = this.socketClient.playerNumber - 1;
+            
+            // Verifica se é a minha vez com o estado mais atual
+            if (this.estadoOnline.turnIndex !== myPlayerIndex) {
+                console.log("[Jogo] Clique ignorado: não é sua vez.");
+                return;
+            }
+            
+            const index = parseInt(carta.dataset.index);
+            if (!carta.classList.contains("virada") && !carta.classList.contains("encontrado")) {
+                this.socketClient.virarCarta(index);
+                // Front-end como "Cliente Burro": não vira a carta localmente.
+            }
+        });
+        
+        this.iniciarLoopTimerTurno();
+        this.atualizarEstadoOnline(state);
+    }
+
+    atualizarEstadoOnline(state) {
+        this.estadoOnline = state; // Atualiza a referência global
+        
+        const cartasElementos = document.querySelectorAll(".carta");
+        state.board.forEach((cardState, index) => {
+            const cartaEl = cartasElementos[index];
+            if (cardState.isMatched) {
+                this.interface.virarCarta(cartaEl);
+                cartaEl.classList.add("encontrado");
+            } else if (cardState.isFlipped) {
+                this.interface.virarCarta(cartaEl);
+            } else {
+                this.interface.desvirarCarta(cartaEl);
+            }
+        });
+
+        // Configura a identificação visual baseado no playerNumber recebido no lobby
+        const myPlayerIndex = this.socketClient.playerNumber - 1;
+        const myPlayer = state.players[myPlayerIndex] || { score: 0, matches: 0 };
+        const otherPlayer = state.players[myPlayerIndex === 0 ? 1 : 0] || { score: 0, matches: 0 };
+
+        this.interface.atualizarPontuacaoMulti(myPlayer.score, otherPlayer.score);
+        this.interface.atualizarParesMulti(myPlayer.matches, otherPlayer.matches);
+        
+        // Se for a vez do jogador local, o turno é '1' (visual: azul/Você), senão é '2' (vermelho/Oponente)
+        const visualTurn = state.turnIndex === myPlayerIndex ? 1 : 2;
+        this.interface.atualizarTurno(visualTurn, true);
+        
+        // Bloqueia cliques gerais durante animação de erro do servidor
+        this.bloqueado = state.isAnimating || (state.turnIndex !== myPlayerIndex);
+    }
+
+    iniciarLoopTimerTurno() {
+        if (this.turnTimerInterval) clearInterval(this.turnTimerInterval);
+        
+        const turnoTempoEl = document.getElementById("turno-tempo");
+        if (!turnoTempoEl) return;
+
+        this.turnTimerInterval = setInterval(() => {
+            if (!this.estadoOnline) return;
+            
+            if (this.estadoOnline.isAnimating) {
+                turnoTempoEl.textContent = "...";
+                return;
+            }
+
+            if (this.estadoOnline.turnEndsAt) {
+                const restantes = Math.max(0, Math.ceil((this.estadoOnline.turnEndsAt - Date.now()) / 1000));
+                turnoTempoEl.textContent = `${restantes}s`;
+            } else {
+                turnoTempoEl.textContent = "20s";
+            }
+        }, 100);
+    }
+
+    finalizarOnline(data) {
+        this.cronometro.parar();
+        if (this.turnTimerInterval) clearInterval(this.turnTimerInterval);
+        
+        const tempoFinal = this.cronometro.segundos;
+        this.som.tocarVitoria();
+        
+        // Determina pts
+        const isWinner = data.winner === this.socketClient.userId;
+        const myPlayer = data.players.find(p => p.id === this.socketClient.userId);
+        const otherPlayer = data.players.find(p => p.id !== this.socketClient.userId) || { score: 0 };
+        
+        this.interface.mostrarModalVitoria(tempoFinal, 0, 0, this.modo, myPlayer.score, otherPlayer.score);
+        const mensagem = document.getElementById("modal-mensagem-vitoria");
+        if (data.reason === 'disconnect') {
+            mensagem.textContent = "O oponente desconectou. Você venceu!";
+        } else {
+            mensagem.textContent = isWinner ? "Você venceu!" : "Você perdeu!";
+        }
+    }
+
     lidarComClique(carta) {
-        console.log(`[Jogo] Clique na carta: ${carta.dataset.animal || 'desconhecido'}`);
-        // Bloqueia cliques se o jogo estiver bloqueado ou se a carta já estiver encontrada/virada
+        if (this.modo === 3) return; // Modo online não usa essa lógica local
+
         if (this.bloqueado) return;
         if (carta.classList.contains("virada")) return;
         if (carta.classList.contains("encontrado")) return;
 
-        // Vira a carta visualmente
         this.interface.virarCarta(carta);
 
         if (!this.primeiraCarta) {
@@ -88,7 +198,6 @@ export default class Jogo {
             return;
         }
 
-        // Impede clicar duas vezes na mesma carta
         if (this.primeiraCarta === carta) return;
 
         this.segundaCarta = carta;
@@ -98,16 +207,11 @@ export default class Jogo {
 
     verificarPar() {
         const acertou = this.primeiraCarta.dataset.animal === this.segundaCarta.dataset.animal;
-        console.log(`[Jogo] Verificando par: ${this.primeiraCarta.dataset.animal} e ${this.segundaCarta.dataset.animal} -> ${acertou ? 'ACERTO' : 'ERRO'}`);
 
         if (acertou) {
-            // — Calcula pontos base (mais por dificuldade)
             const pontosBase = 100 + (this.colunas - 2) * 20;
-
-            // — Bônus de velocidade: quanto mais rápido, mais pontos
             const segundosDecorridos = this.cronometro.segundos;
             const bonusVelocidade = Math.max(0, 30 - segundosDecorridos) * 2;
-
             const pontosGanhos = pontosBase + bonusVelocidade;
 
             this.paresEncontrados++;
@@ -126,26 +230,20 @@ export default class Jogo {
                 }
                 this.interface.atualizarPontuacaoMulti(this.pontuacaoP1.getPontuacao(), this.pontuacaoP2.getPontuacao());
                 this.interface.atualizarParesMulti(this.paresP1, this.paresP2);
-                // No acerto, o turno não muda (jogador joga novamente)
             }
 
-            // Marca cartas como encontradas
             this.primeiraCarta.classList.add("encontrado");
             this.segundaCarta.classList.add("encontrado");
 
-            // Mostra pontos flutuantes na segunda carta
             this.interface.mostrarPontosFlutuantes(this.segundaCarta, `+${pontosGanhos}`, true);
 
             this.resetarSelecao();
 
-            // Verifica se terminou
             if (this.paresEncontrados === this.totalPares) {
-                // Pequeno delay para a animação da última carta terminar
                 setTimeout(() => this.finalizar(), 600);
             }
 
         } else {
-            // Erro: penalidade
             this.erros++;
             const penalidade = 10;
 
@@ -160,19 +258,16 @@ export default class Jogo {
                     this.pontuacaoP2.removerPontos(penalidade);
                 }
                 this.interface.atualizarPontuacaoMulti(this.pontuacaoP1.getPontuacao(), this.pontuacaoP2.getPontuacao());
-                // No erro, passa a vez
                 this.turnoAtual = this.turnoAtual === 1 ? 2 : 1;
                 this.interface.atualizarTurno(this.turnoAtual);
             }
 
             this.interface.mostrarPontosFlutuantes(this.segundaCarta, `-${penalidade}`, false);
-
             this.desvirarCartas();
         }
     }
 
     desvirarCartas() {
-        // Animação de "shake" visual
         this.primeiraCarta.classList.add("shake");
         this.segundaCarta.classList.add("shake");
 
@@ -192,15 +287,13 @@ export default class Jogo {
     }
 
     finalizar() {
-        console.log('[Jogo] Jogo finalizado! Exibindo modal de vitória.');
-        this.cronometro.parar(); // ← Para o tempo ao terminar
+        this.cronometro.parar();
 
         const tempoFinal = this.cronometro.segundos;
         const pontosFinal = this.pontuacao.getPontuacao();
         const ptsP1 = this.pontuacaoP1.getPontuacao();
         const ptsP2 = this.pontuacaoP2.getPontuacao();
 
-        // Envia dados para o backend (AJAX)
         fetch('/api/game-sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -213,8 +306,7 @@ export default class Jogo {
             })
         }).then(res => {
             if (res.ok) console.log('Partida salva com sucesso no banco de dados!');
-            else console.log('Erro ao salvar partida.');
-        }).catch(err => console.error('Erro de conexão com o servidor', err));
+        }).catch(err => console.error('Erro de conexão', err));
 
         this.som.tocarVitoria();
         this.interface.mostrarModalVitoria(tempoFinal, this.erros, pontosFinal, this.modo, ptsP1, ptsP2);
@@ -222,5 +314,6 @@ export default class Jogo {
 
     destruir() {
         this.cronometro.parar();
+        if (this.turnTimerInterval) clearInterval(this.turnTimerInterval);
     }
 }

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 
 <body>
@@ -23,27 +24,73 @@
             <div class="modo-selecao">
                 <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
                 <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (Local)</button>
+                <button id="btn-online" class="btn-modo" data-modo="3">🌐 Online</button>
             </div>
 
-            <p class="subtitulo">Escolha a dificuldade:</p>
-            <div class="botoes-grid">
-                <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
-                    <span class="btn-nivel">⭐⭐</span>
-                    <span class="btn-tamanho">2×2</span>
-                    <span class="btn-info">4 cartas</span>
-                </button>
-                <button id="btn-4x4" class="btn-dificuldade" data-cols="4" data-pares="8">
-                    <span class="btn-nivel">⭐⭐⭐⭐</span>
-                    <span class="btn-tamanho">4×4</span>
-                    <span class="btn-info">16 cartas</span>
-                </button>
-                <button id="btn-6x6" class="btn-dificuldade" data-cols="6" data-pares="18">
-                    <span class="btn-nivel">⭐⭐⭐⭐⭐</span>
-                    <span class="btn-tamanho">6×6</span>
-                    <span class="btn-info">36 cartas</span>
-                </button>
+            <!-- Área Dificuldade (Local / Single) -->
+            <div id="area-dificuldade">
+                <p class="subtitulo">Escolha a dificuldade:</p>
+                <div class="botoes-grid">
+                    <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
+                        <span class="btn-nivel">⭐⭐</span>
+                        <span class="btn-tamanho">2×2</span>
+                        <span class="btn-info">4 cartas</span>
+                    </button>
+                    <button id="btn-4x4" class="btn-dificuldade" data-cols="4" data-pares="8">
+                        <span class="btn-nivel">⭐⭐⭐⭐</span>
+                        <span class="btn-tamanho">4×4</span>
+                        <span class="btn-info">16 cartas</span>
+                    </button>
+                    <button id="btn-6x6" class="btn-dificuldade" data-cols="6" data-pares="18">
+                        <span class="btn-nivel">⭐⭐⭐⭐⭐</span>
+                        <span class="btn-tamanho">6×6</span>
+                        <span class="btn-info">36 cartas</span>
+                    </button>
+                </div>
             </div>
 
+            <!-- Área Lobby Online -->
+            <div id="area-lobby-online" class="oculto">
+                <p class="subtitulo">Multijogador Online</p>
+                <div class="lobby-acoes">
+                    <div class="lobby-criar">
+                        <p>Criar uma nova sala:</p>
+                        <div class="botoes-grid">
+                            <button class="btn-dificuldade btn-criar-sala" data-cols="2" data-pares="2">
+                                <span class="btn-nivel">⭐⭐</span>
+                                <span class="btn-tamanho">2×2</span>
+                            </button>
+                            <button class="btn-dificuldade btn-criar-sala" data-cols="4" data-pares="8">
+                                <span class="btn-nivel">⭐⭐⭐⭐</span>
+                                <span class="btn-tamanho">4×4</span>
+                            </button>
+                            <button class="btn-dificuldade btn-criar-sala" data-cols="6" data-pares="18">
+                                <span class="btn-nivel">⭐⭐⭐⭐⭐</span>
+                                <span class="btn-tamanho">6×6</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="lobby-entrar" style="margin-top: 20px;">
+                        <p>Ou entrar com código:</p>
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                            <input type="text" id="input-codigo-sala" placeholder="EX: A1B2C" maxlength="5" style="padding: 10px; border-radius: 8px; border: 2px solid #ddd; font-family: 'Outfit'; font-weight: 600; text-transform: uppercase; width: 120px; text-align: center;">
+                            <button id="btn-entrar-sala" class="btn-dificuldade" style="width: auto; padding: 10px 20px;">Entrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TELA AGUARDANDO OPONENTE -->
+    <div id="tela-aguardando" class="oculto">
+        <div class="tela-inicial-card" style="text-align: center;">
+            <h2>Aguardando oponente...</h2>
+            <p>Envie o código abaixo para o outro jogador:</p>
+            <h1 class="codigo-destaque" id="codigo-sala-display" style="font-size: 3rem; letter-spacing: 5px; color: #10b981; margin: 20px 0;">---</h1>
+            <p>Carregando...</p>
+            <button id="btn-cancelar-sala" class="btn-voltar" style="margin-top: 20px;">Cancelar</button>
         </div>
     </div>
 
@@ -102,9 +149,9 @@
                 <!-- MULTIPLAYER -->
                 <div class="informacoes oculto" id="info-multi">
                     <div class="info-box player-box" id="box-p1">
-                        <span class="info-icone p1-icon">🔵</span>
+                        <span class="info-icone p1-icon" id="icone-p1">🔵</span>
                         <div>
-                            <span class="info-label">Jogador 1</span>
+                            <span class="info-label" id="label-p1">Jogador 1</span>
                             <span class="info-valor" id="pontuacao-p1">0</span>
                             <span class="info-label" id="pares-p1">0 pares</span>
                         </div>
@@ -113,15 +160,23 @@
                     <div class="info-box">
                         <span class="info-icone">⏱️</span>
                         <div>
-                            <span class="info-label">Tempo</span>
+                            <span class="info-label">Partida</span>
                             <span class="info-valor" id="tempo-multi">00:00</span>
                         </div>
                     </div>
 
-                    <div class="info-box player-box" id="box-p2">
-                        <span class="info-icone p2-icon">🔴</span>
+                    <div class="info-box">
+                        <span class="info-icone">⏳</span>
                         <div>
-                            <span class="info-label">Jogador 2</span>
+                            <span class="info-label">Turno</span>
+                            <span class="info-valor" id="turno-tempo" style="color: #ef4444; font-weight: bold;">20s</span>
+                        </div>
+                    </div>
+
+                    <div class="info-box player-box" id="box-p2">
+                        <span class="info-icone p2-icon" id="icone-p2">🔴</span>
+                        <div>
+                            <span class="info-label" id="label-p2">Jogador 2</span>
                             <span class="info-valor" id="pontuacao-p2">0</span>
                             <span class="info-label" id="pares-p2">0 pares</span>
                         </div>
@@ -170,10 +225,16 @@
 
     <script type="module">
         import Jogo from "./js/Jogo.js";
+        import SocketClient from "./js/SocketClient.js";
 
         let jogo = null;
         let colunasAtuais = 4;
         let modoSelecionado = 1;
+        let socketClient = null;
+
+        // Tenta conectar o socket apenas se entrar na aba online, 
+        // ou inicializa logo no começo pra ficar pronto
+        socketClient = new SocketClient();
 
         // Botões de Modo
         document.querySelectorAll(".btn-modo").forEach(btn => {
@@ -181,11 +242,19 @@
                 document.querySelectorAll(".btn-modo").forEach(b => b.classList.remove("ativo"));
                 btn.classList.add("ativo");
                 modoSelecionado = parseInt(btn.dataset.modo);
+
+                if (modoSelecionado === 3) {
+                    document.getElementById("area-dificuldade").classList.add("oculto");
+                    document.getElementById("area-lobby-online").classList.remove("oculto");
+                } else {
+                    document.getElementById("area-dificuldade").classList.remove("oculto");
+                    document.getElementById("area-lobby-online").classList.add("oculto");
+                }
             });
         });
 
-        // Botões de dificuldade
-        document.querySelectorAll(".btn-dificuldade").forEach(btn => {
+        // Botões de dificuldade (Locais)
+        document.querySelectorAll(".btn-dificuldade:not(.btn-criar-sala)").forEach(btn => {
             btn.addEventListener("click", () => {
                 const pares = parseInt(btn.dataset.pares);
                 const cols = parseInt(btn.dataset.cols);
@@ -193,11 +262,59 @@
             });
         });
 
+        // Botões Criar Sala Online
+        document.querySelectorAll(".btn-criar-sala").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const pares = parseInt(btn.dataset.pares);
+                const cols = parseInt(btn.dataset.cols);
+                socketClient.criarSala(pares, cols, (roomId) => {
+                    document.getElementById("tela-inicial").classList.add("oculto");
+                    document.getElementById("tela-aguardando").classList.remove("oculto");
+                    document.getElementById("codigo-sala-display").textContent = roomId;
+                });
+            });
+        });
+
+        // Botão Entrar em Sala
+        document.getElementById("btn-entrar-sala").addEventListener("click", () => {
+            const codigo = document.getElementById("input-codigo-sala").value.trim().toUpperCase();
+            if (!codigo) return alert("Digite um código de sala!");
+            socketClient.entrarSala(codigo);
+        });
+
+        document.getElementById("btn-cancelar-sala").addEventListener("click", () => {
+            // Recarrega a página ou desconecta
+            window.location.reload();
+        });
+
+        // Eventos do Socket
+        socketClient.onGameStart = (state) => {
+            document.getElementById("tela-aguardando").classList.add("oculto");
+            iniciarJogoOnline(state);
+        };
+
+        socketClient.onBoardUpdate = (state) => {
+            if (jogo) jogo.atualizarEstadoOnline(state);
+        };
+
+        socketClient.onGameOver = (data) => {
+            if (jogo) jogo.finalizarOnline(data);
+        };
+
+        socketClient.onError = (msg) => {
+            alert(msg);
+        };
+
         // Botão voltar
         document.getElementById("btn-voltar").addEventListener("click", voltarMenu);
 
         // Modal – jogar novamente
         document.getElementById("modal-jogar-novamente").addEventListener("click", () => {
+            if (modoSelecionado === 3) {
+                // Online não permite "jogar novamente" diretamente ainda, volta pro menu
+                voltarMenu();
+                return;
+            }
             document.getElementById("modal-vitoria").classList.add("oculto");
             iniciarJogo(jogo._pares, colunasAtuais, modoSelecionado);
         });
@@ -208,22 +325,22 @@
             voltarMenu();
         });
 
-        function iniciarJogo(pares, cols, modo) {
+        function prepararInterface(pares, cols, modo) {
             colunasAtuais = cols;
             modoSelecionado = modo;
 
             document.getElementById("tela-inicial").classList.add("oculto");
+            document.getElementById("tela-aguardando").classList.add("oculto");
             document.getElementById("area-jogo").classList.remove("oculto");
 
             const tabuleiroEl = document.getElementById("tabuleiro");
             tabuleiroEl.className = "";
             tabuleiroEl.dataset.cols = cols;
 
-            // Ajusta o cabeçalho dependendo do modo
+            // Ajusta o cabeçalho
             if (modo === 1) {
                 document.getElementById("info-single").classList.remove("oculto");
                 document.getElementById("info-multi").classList.add("oculto");
-
                 const alertaTurno = document.getElementById("alerta-turno");
                 if (alertaTurno) alertaTurno.classList.add("oculto");
 
@@ -241,14 +358,35 @@
                 document.getElementById("pares-p1").textContent = "0 pares";
                 document.getElementById("pares-p2").textContent = "0 pares";
                 document.getElementById("tempo-multi").textContent = "00:00";
-            }
 
+                if (modo === 3) {
+                    document.getElementById("label-p1").textContent = "Você";
+                    document.getElementById("label-p2").textContent = "Oponente";
+                } else {
+                    document.getElementById("label-p1").textContent = "Jogador 1";
+                    document.getElementById("label-p2").textContent = "Jogador 2";
+                }
+            }
+        }
+
+        function iniciarJogo(pares, cols, modo) {
+            prepararInterface(pares, cols, modo);
             jogo = new Jogo(cols, modo);
             jogo._pares = pares;
             jogo.iniciar(pares);
         }
 
+        function iniciarJogoOnline(state) {
+            prepararInterface(state.pares, state.cols, 3);
+            jogo = new Jogo(state.cols, 3);
+            jogo._pares = state.pares;
+            jogo.socketClient = socketClient;
+            jogo.iniciarOnline(state);
+        }
+
         function voltarMenu() {
+            if (modoSelecionado === 3) window.location.reload(); // Reset completo pra não manter socket preso
+            
             if (jogo) jogo.destruir();
             document.getElementById("area-jogo").classList.add("oculto");
             document.getElementById("tela-inicial").classList.remove("oculto");

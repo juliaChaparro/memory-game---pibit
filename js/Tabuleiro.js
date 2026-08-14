@@ -45,6 +45,22 @@ export default class Tabuleiro {
         // Transforma em objetos Carta
         this.cartas = nomesImagens.map((nome, index) => new Carta(index, nome));
 
+        this._renderizar(tabuleiroElemento);
+    }
+
+    renderizarCartasServidor(cartasServidor) {
+        const tabuleiroElemento = document.getElementById("tabuleiro");
+        if (!tabuleiroElemento) return;
+
+        tabuleiroElemento.innerHTML = "";
+
+        // Mapeia do formato do servidor para o formato local
+        this.cartas = cartasServidor.map(c => new Carta(c.id, c.value));
+
+        this._renderizar(tabuleiroElemento);
+    }
+
+    _renderizar(tabuleiroElemento) {
         const logosFundo = [
             { src: "assets/background/logo_ufam.png", alt: "UFAM" },
             { src: "assets/background/logo_icomp.png", alt: "ICOMP" },
@@ -52,10 +68,11 @@ export default class Tabuleiro {
         ];
 
         // Renderiza no HTML
-        this.cartas.forEach(cartaObj => {
+        this.cartas.forEach((cartaObj, index) => {
             const cartaElemento = document.createElement("div");
             cartaElemento.classList.add("carta");
             cartaElemento.dataset.animal = cartaObj.imagem;
+            cartaElemento.dataset.index = index; // Importante para o modo online
 
             // Escolhe uma logo aleatória para as costas desta carta
             const logoEscolhida = logosFundo[Math.floor(Math.random() * logosFundo.length)];
