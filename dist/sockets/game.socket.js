@@ -46,7 +46,10 @@ function startTurnTimer(roomId, io) {
 }
 function handleGameSockets(io, socket, prisma) {
     socket.on('create_room', (data) => {
-        const { userId, pares, cols } = data;
+        const userId = socket.data.user?.userId;
+        if (!userId)
+            return;
+        const { pares, cols } = data;
         const roomId = generateRoomCode();
         socket.join(roomId);
         const state = {
@@ -64,7 +67,10 @@ function handleGameSockets(io, socket, prisma) {
         socket.emit('room_created', { roomId, state });
     });
     socket.on('join_room_code', async (data) => {
-        const { roomId, userId } = data;
+        const userId = socket.data.user?.userId;
+        if (!userId)
+            return;
+        const { roomId } = data;
         const state = activeRooms.get(roomId);
         if (!state) {
             socket.emit('error_message', { message: 'Sala não encontrada.' });

@@ -9,6 +9,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <script>
+        window.usuarioLogado = null;
+        window.handleCredentialResponse = async (response) => {
+            try {
+                const res = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: response.credential })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.usuarioLogado = data.user;
+                    document.getElementById("area-login").classList.add("oculto");
+                    document.getElementById("area-lobby-online").classList.remove("oculto");
+                } else {
+                    alert('Erro ao fazer login: ' + data.error);
+                }
+            } catch (e) {
+                alert('Erro ao conectar ao servidor para login.');
+            }
+        };
+
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                const data = await res.json();
+                if (data.authenticated) {
+                    window.usuarioLogado = data.user;
+                }
+            } catch(e) {}
+        });
+    </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
@@ -252,40 +284,6 @@
         let colunasAtuais = 4;
         let modoSelecionado = 1;
         let socketClient = null;
-
-        window.usuarioLogado = null;
-
-        // Função chamada pelo Google após login
-        window.handleCredentialResponse = async (response) => {
-            try {
-                const res = await fetch('/api/auth/google', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: response.credential })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    window.usuarioLogado = data.user;
-                    document.getElementById("area-login").classList.add("oculto");
-                    document.getElementById("area-lobby-online").classList.remove("oculto");
-                } else {
-                    alert('Erro ao fazer login: ' + data.error);
-                }
-            } catch (e) {
-                alert('Erro ao conectar ao servidor para login.');
-            }
-        };
-
-        // Verifica a sessão ao carregar a página
-        window.addEventListener('load', async () => {
-            try {
-                const res = await fetch('/api/auth/me');
-                const data = await res.json();
-                if (data.authenticated) {
-                    window.usuarioLogado = data.user;
-                }
-            } catch(e) {}
-        });
 
         // Tenta conectar o socket apenas se entrar na aba online, 
         // ou inicializa logo no começo pra ficar pronto

@@ -28,7 +28,7 @@ authRouter.post('/google', async (req, res) => {
 
     const ticket = await client.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: process.env.GOOGLE_CLIENT_ID as string,
     });
 
     const payload = ticket.getPayload();
@@ -53,13 +53,22 @@ authRouter.post('/google', async (req, res) => {
         // Link conta existente
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { googleId, name, avatarUrl }
+          data: { 
+            googleId, 
+            name: name || null, 
+            avatarUrl: avatarUrl || null 
+          }
         });
         logger.info(`[AUTH_SUCCESS] Conta existente vinculada ao Google: ${email}`);
       } else {
         // Criação de nova conta
         user = await prisma.user.create({
-          data: { googleId, email, name, avatarUrl }
+          data: { 
+            googleId, 
+            email: email || null, 
+            name: name || null, 
+            avatarUrl: avatarUrl || null 
+          }
         });
         logger.info(`[AUTH_SUCCESS] Nova conta Google registrada: ${email}`);
       }
@@ -67,7 +76,10 @@ authRouter.post('/google', async (req, res) => {
       // Atualiza possíveis alterações de foto/nome
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { name, avatarUrl }
+        data: { 
+          name: name || null, 
+          avatarUrl: avatarUrl || null 
+        }
       });
       logger.info(`[AUTH_SUCCESS] Usuário Google logado: ${email}`);
     }
