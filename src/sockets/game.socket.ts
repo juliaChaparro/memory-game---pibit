@@ -54,8 +54,10 @@ function startTurnTimer(roomId: string, io: Server) {
 
 export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClient) {
   
-  socket.on('create_room', (data: { userId: string, pares: number, cols: number }) => {
-    const { userId, pares, cols } = data;
+  socket.on('create_room', (data: { pares: number, cols: number }) => {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+    const { pares, cols } = data;
     const roomId = generateRoomCode();
     socket.join(roomId);
     
@@ -75,8 +77,10 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     socket.emit('room_created', { roomId, state });
   });
 
-  socket.on('join_room_code', async (data: { roomId: string; userId: string }) => {
-    const { roomId, userId } = data;
+  socket.on('join_room_code', async (data: { roomId: string }) => {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+    const { roomId } = data;
     const state = activeRooms.get(roomId);
     
     if (!state) {

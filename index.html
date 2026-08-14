@@ -8,7 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -25,6 +26,26 @@
                 <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
                 <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (Local)</button>
                 <button id="btn-online" class="btn-modo" data-modo="3">🌐 Online</button>
+            </div>
+
+            <!-- Área de Login -->
+            <div id="area-login" class="oculto" style="margin-top: 20px;">
+                <p class="subtitulo" style="color: #ef4444; font-size: 0.9rem;">Para jogar online, você precisa fazer login.</p>
+                <div id="g_id_onload"
+                     data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="pill"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
             </div>
 
             <!-- Área Dificuldade (Local / Single) -->
@@ -232,6 +253,40 @@
         let modoSelecionado = 1;
         let socketClient = null;
 
+        window.usuarioLogado = null;
+
+        // Função chamada pelo Google após login
+        window.handleCredentialResponse = async (response) => {
+            try {
+                const res = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: response.credential })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.usuarioLogado = data.user;
+                    document.getElementById("area-login").classList.add("oculto");
+                    document.getElementById("area-lobby-online").classList.remove("oculto");
+                } else {
+                    alert('Erro ao fazer login: ' + data.error);
+                }
+            } catch (e) {
+                alert('Erro ao conectar ao servidor para login.');
+            }
+        };
+
+        // Verifica a sessão ao carregar a página
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                const data = await res.json();
+                if (data.authenticated) {
+                    window.usuarioLogado = data.user;
+                }
+            } catch(e) {}
+        });
+
         // Tenta conectar o socket apenas se entrar na aba online, 
         // ou inicializa logo no começo pra ficar pronto
         socketClient = new SocketClient();
@@ -245,10 +300,18 @@
 
                 if (modoSelecionado === 3) {
                     document.getElementById("area-dificuldade").classList.add("oculto");
-                    document.getElementById("area-lobby-online").classList.remove("oculto");
+                    // Se não estiver logado, exibe a área de login e oculta o lobby
+                    if (!window.usuarioLogado) {
+                        document.getElementById("area-login").classList.remove("oculto");
+                        document.getElementById("area-lobby-online").classList.add("oculto");
+                    } else {
+                        document.getElementById("area-login").classList.add("oculto");
+                        document.getElementById("area-lobby-online").classList.remove("oculto");
+                    }
                 } else {
                     document.getElementById("area-dificuldade").classList.remove("oculto");
                     document.getElementById("area-lobby-online").classList.add("oculto");
+                    document.getElementById("area-login").classList.add("oculto");
                 }
             });
         });

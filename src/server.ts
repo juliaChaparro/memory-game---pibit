@@ -4,7 +4,12 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
+import { createClient } from '@libsql/client';
+import jwt from 'jsonwebtoken';
 import { handleGameSockets } from './sockets/game.socket';
+import { setupAuthRoutes } from './routes/auth.route';
+import { logger } from './utils/logger';
+import cookieParser from 'cookie-parser';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
@@ -13,27 +18,43 @@ const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
 const adapter = new PrismaLibSql({ url: dbUrl });
 const prisma = new PrismaClient({ adapter });
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// Adiciona logger nas requisições
+app.use((req, res, next) => {
+  logger.info(`[HTTP] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(express.static(path.join(__dirname, '..')));
+
+app.use('/api/auth', setupAuthRoutes(prisma));
 
 app.post('/api/game-sessions', async (req, res) => {
     try {
         const { modo, pares, tempo, pontuacao, erros } = req.body;
+        
+        // Conversão explícita para Int, prevenindo falhas do Prisma com strings do Front-end
         const session = await prisma.gameSession.create({
             data: {
-                modo,
-                pares,
-                tempo,
-                pontuacao,
-                erros
+                modo: Number(modo) || 0,
+                pares: Number(pares) || 0,
+                tempo: Number(tempo) || 0,
+                pontuacao: Number(pontuacao) || 0,
+                erros: Number(erros) || 0
             }
         });
-        console.log(`Nova partida salva! Modo: ${modo}, Pontos: ${pontuacao}`);
+        
+        logger.info(`[DB_SUCCESS] Nova partida salva! Modo: ${modo}, Pontos: ${pontuacao}`);
         res.status(201).json(session);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Erro ao salvar a partida.' });
+    } catch (error: any) {
+        logger.error(`[DB_ERROR] Erro na rota /api/game-sessions: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ error: 'Erro interno ao salvar a partida. Detalhes registrados nos logs do servidor.' });
     }
 });
 
@@ -52,17 +73,44 @@ app.get('/api/game-sessions', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: true,
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Middleware de Autenticação para WebSockets
+io.use((socket, next) => {
+  const cookieHeader = socket.request.headers.cookie;
+  if (!cookieHeader) {
+    logger.warn(`[SOCKET_AUTH] Rejeitado ${socket.id}: Sem cookies`);
+    return next(new Error('Authentication error'));
+  }
+
+  const token = cookieHeader.split(';').find(c => c.trim().startsWith('auth_token='))?.split('=')[1];
+  if (!token) {
+    logger.warn(`[SOCKET_AUTH] Rejeitado ${socket.id}: auth_token ausente`);
+    return next(new Error('Authentication error'));
+  }
+
+  try {
+    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-development-only';
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    socket.data.user = decoded;
+    logger.info(`[SOCKET_AUTH] Autorizado: ${decoded.email} (${socket.id})`);
+    next();
+  } catch (err) {
+    logger.warn(`[SOCKET_AUTH] Rejeitado ${socket.id}: Token inválido`);
+    next(new Error('Authentication error'));
   }
 });
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  logger.info(`[SOCKET] User connected: ${socket.id} - ${socket.data.user.email}`);
   handleGameSockets(io, socket, prisma);
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`[SERVER] Server running on port ${PORT}`);
 });

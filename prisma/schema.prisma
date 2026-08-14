@@ -8,9 +8,14 @@ datasource db {
 
 model User {
   id        String        @id @default(uuid())
-  username  String        @unique
+  googleId  String?       @unique
+  email     String?       @unique
+  name      String?
+  avatarUrl String?
+  username  String?       @unique
   history   GameHistory[]
   createdAt DateTime      @default(now())
+  updatedAt DateTime      @default(now()) @updatedAt
 }
 
 model Room {

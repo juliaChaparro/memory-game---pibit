@@ -11,7 +11,7 @@ export default class SocketClient {
         
         try {
             if (typeof io !== 'undefined') {
-                this.socket = io();
+                this.socket = io({ withCredentials: true });
                 this._configurarEventos();
             } else {
                 console.warn('Socket.io não encontrado.');
@@ -51,7 +51,7 @@ export default class SocketClient {
 
     criarSala(pares, cols, callback) {
         if (!this.socket) return;
-        this.socket.emit('create_room', { userId: this.userId, pares, cols });
+        this.socket.emit('create_room', { pares, cols });
         
         // Vamos escutar temporariamente o room_created para chamar o callback
         this.socket.once('room_created', (data) => {
@@ -62,7 +62,7 @@ export default class SocketClient {
     entrarSala(roomId) {
         if (!this.socket) return;
         this.roomId = roomId;
-        this.socket.emit('join_room_code', { roomId, userId: this.userId });
+        this.socket.emit('join_room_code', { roomId });
     }
 
     virarCarta(cardIndex) {
