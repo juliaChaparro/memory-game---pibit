@@ -35,6 +35,25 @@
         };
 
         window.addEventListener('load', async () => {
+            // Inicialização Dinâmica do Google Auth
+            try {
+                const configRes = await fetch('/api/auth/config');
+                const configData = await configRes.json();
+                
+                if (configData.clientId && google) {
+                    google.accounts.id.initialize({
+                        client_id: configData.clientId,
+                        callback: window.handleCredentialResponse
+                    });
+                    google.accounts.id.renderButton(
+                        document.getElementById("buttonDiv"),
+                        { theme: "outline", size: "large", shape: "pill", text: "signin_with" }
+                    );
+                }
+            } catch(e) {
+                console.error('Erro ao carregar Client ID:', e);
+            }
+
             try {
                 const res = await fetch('/api/auth/me');
                 const data = await res.json();
@@ -108,21 +127,8 @@
             <!-- Área de Login -->
             <div id="area-login" class="oculto" style="margin-top: 20px;">
                 <p class="subtitulo" style="color: #ef4444; font-size: 0.9rem;">Para jogar online, você precisa fazer login.</p>
-                <div id="g_id_onload"
-                     data-client_id="YOUR_GOOGLE_CLIENT_ID"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-callback="handleCredentialResponse"
-                     data-auto_prompt="false">
-                </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="pill"
-                     data-theme="outline"
-                     data-text="signin_with"
-                     data-size="large"
-                     data-logo_alignment="left">
-                </div>
+                <!-- Renderizaremos o botão do Google via JS aqui dentro -->
+                <div id="buttonDiv" style="display: flex; justify-content: center; margin-top: 10px;"></div> 
             </div>
 
             <!-- Área Dificuldade (Local / Single) -->

@@ -213,6 +213,10 @@ authRouter.get('/me', async (req, res) => {
   }
 });
 
+authRouter.get('/config', (req, res) => {
+  res.json({ clientId: process.env.GOOGLE_CLIENT_ID || '' });
+});
+
 authRouter.post('/logout', (req, res) => {
   res.clearCookie('auth_token');
   res.json({ success: true });
