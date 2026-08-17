@@ -21,8 +21,11 @@
                 const data = await res.json();
                 if (data.success) {
                     window.usuarioLogado = data.user;
-                    document.getElementById("area-login").classList.add("oculto");
-                    document.getElementById("area-lobby-online").classList.remove("oculto");
+                    if (data.requireUsername) {
+                        document.getElementById("modal-username").classList.remove("oculto");
+                    } else {
+                        concluirLogin();
+                    }
                 } else {
                     alert('Erro ao fazer login: ' + data.error);
                 }
@@ -37,9 +40,51 @@
                 const data = await res.json();
                 if (data.authenticated) {
                     window.usuarioLogado = data.user;
+                    if (!window.usuarioLogado.username) {
+                        document.getElementById("modal-username").classList.remove("oculto");
+                    } else {
+                        concluirLogin();
+                    }
                 }
             } catch(e) {}
+            
+            document.getElementById("btn-salvar-username").addEventListener("click", async () => {
+                const username = document.getElementById("input-username").value.trim();
+                const erroEl = document.getElementById("error-username");
+                if (!window.usuarioLogado) return;
+                
+                erroEl.style.display = "none";
+                try {
+                    const res = await fetch('/api/auth/set-username', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        window.usuarioLogado = data.user;
+                        document.getElementById("modal-username").classList.add("oculto");
+                        concluirLogin();
+                    } else {
+                        erroEl.textContent = data.error;
+                        erroEl.style.display = "block";
+                    }
+                } catch(e) {
+                    erroEl.textContent = 'Erro ao se conectar com o servidor.';
+                    erroEl.style.display = "block";
+                }
+            });
         });
+
+        function concluirLogin() {
+            document.getElementById("area-login").classList.add("oculto");
+            // Se o usuário selecionou modo online
+            if (window.modoSelecionadoParaJogar === 3) {
+                document.getElementById("area-lobby-online").classList.remove("oculto");
+            } else if (window.modoSelecionadoParaJogar) {
+                document.getElementById("area-dificuldade").classList.remove("oculto");
+            }
+        }
     </script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -276,6 +321,17 @@
         </div>
     </div>
 
+    <!-- ===== MODAL SET USERNAME ===== -->
+    <div id="modal-username" class="oculto" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; justify-content: center; align-items: center; font-family: 'Outfit';">
+        <div class="modal-card" style="background: white; padding: 30px; border-radius: 12px; text-align: center; max-width: 400px; width: 90%;">
+            <h2>Defina seu Apelido</h2>
+            <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">Escolha um nome único (3 a 16 caracteres, sem espaços).</p>
+            <input type="text" id="input-username" placeholder="Seu apelido..." maxlength="16" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
+            <p id="error-username" style="color: #ef4444; font-size: 0.85rem; margin-bottom: 15px; display: none;"></p>
+            <button id="btn-salvar-username" class="btn-modo ativo" style="width: 100%;">Salvar e Jogar</button>
+        </div>
+    </div>
+
     <script type="module">
         import Jogo from "./js/Jogo.js";
         import SocketClient from "./js/SocketClient.js";
@@ -291,21 +347,29 @@
 
         // Botões de Modo
         document.querySelectorAll(".btn-modo").forEach(btn => {
+            if(btn.id === 'btn-salvar-username') return; // ignore modal button
             btn.addEventListener("click", () => {
-                document.querySelectorAll(".btn-modo").forEach(b => b.classList.remove("ativo"));
+                document.querySelectorAll(".btn-modo:not(#btn-salvar-username)").forEach(b => b.classList.remove("ativo"));
                 btn.classList.add("ativo");
                 modoSelecionado = parseInt(btn.dataset.modo);
+                window.modoSelecionadoParaJogar = modoSelecionado;
+
+                // TODOS OS MODOS EXIGEM LOGIN E USERNAME AGORA
+                if (!window.usuarioLogado || !window.usuarioLogado.username) {
+                    document.getElementById("area-dificuldade").classList.add("oculto");
+                    document.getElementById("area-lobby-online").classList.add("oculto");
+                    document.getElementById("area-login").classList.remove("oculto");
+                    document.getElementById("area-login").querySelector("p").textContent = "Para jogar qualquer modo, você precisa fazer login e escolher um apelido.";
+                    if (window.usuarioLogado && !window.usuarioLogado.username) {
+                        document.getElementById("modal-username").classList.remove("oculto");
+                    }
+                    return;
+                }
 
                 if (modoSelecionado === 3) {
                     document.getElementById("area-dificuldade").classList.add("oculto");
-                    // Se não estiver logado, exibe a área de login e oculta o lobby
-                    if (!window.usuarioLogado) {
-                        document.getElementById("area-login").classList.remove("oculto");
-                        document.getElementById("area-lobby-online").classList.add("oculto");
-                    } else {
-                        document.getElementById("area-login").classList.add("oculto");
-                        document.getElementById("area-lobby-online").classList.remove("oculto");
-                    }
+                    document.getElementById("area-login").classList.add("oculto");
+                    document.getElementById("area-lobby-online").classList.remove("oculto");
                 } else {
                     document.getElementById("area-dificuldade").classList.remove("oculto");
                     document.getElementById("area-lobby-online").classList.add("oculto");
