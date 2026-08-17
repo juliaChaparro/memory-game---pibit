@@ -36,23 +36,34 @@
 
         window.addEventListener('load', async () => {
             // Inicialização Dinâmica do Google Auth
-            try {
-                const configRes = await fetch('/api/auth/config');
-                const configData = await configRes.json();
-                
-                if (configData.clientId && google) {
-                    google.accounts.id.initialize({
-                        client_id: configData.clientId,
-                        callback: window.handleCredentialResponse
-                    });
-                    google.accounts.id.renderButton(
-                        document.getElementById("buttonDiv"),
-                        { theme: "outline", size: "large", shape: "pill", text: "signin_with" }
-                    );
+            const initGoogleAuth = async () => {
+                try {
+                    const configRes = await fetch('/api/auth/config');
+                    const configData = await configRes.json();
+                    
+                    const checkGoogleAndRender = () => {
+                        if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                            google.accounts.id.initialize({
+                                client_id: configData.clientId,
+                                callback: window.handleCredentialResponse
+                            });
+                            google.accounts.id.renderButton(
+                                document.getElementById("buttonDiv"),
+                                { theme: "outline", size: "large", shape: "pill", text: "signin_with" }
+                            );
+                        } else {
+                            setTimeout(checkGoogleAndRender, 100);
+                        }
+                    };
+
+                    if (configData.clientId) {
+                        checkGoogleAndRender();
+                    }
+                } catch(e) {
+                    console.error('Erro ao carregar Client ID:', e);
                 }
-            } catch(e) {
-                console.error('Erro ao carregar Client ID:', e);
-            }
+            };
+            initGoogleAuth();
 
             try {
                 const res = await fetch('/api/auth/me');
@@ -98,10 +109,13 @@
         function concluirLogin() {
             document.getElementById("area-login").classList.add("oculto");
             // Se o usuário selecionou modo online
-            if (window.modoSelecionadoParaJogar === 3) {
+            const modo = window.modoSelecionadoParaJogar || 1;
+            if (modo === 3) {
                 document.getElementById("area-lobby-online").classList.remove("oculto");
-            } else if (window.modoSelecionadoParaJogar) {
+                document.getElementById("area-dificuldade").classList.add("oculto");
+            } else {
                 document.getElementById("area-dificuldade").classList.remove("oculto");
+                document.getElementById("area-lobby-online").classList.add("oculto");
             }
         }
     </script>
