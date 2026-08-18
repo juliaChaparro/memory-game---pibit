@@ -112,6 +112,7 @@
         function concluirLogin() {
             document.getElementById("area-login").classList.add("oculto");
             document.getElementById("secao-modos").classList.remove("oculto");
+            window.dispatchEvent(new Event('loginConcluido'));
         }
 
         function abrirModo(modo) {
@@ -372,9 +373,11 @@
         let modoSelecionado = 1;
         let socketClient = null;
 
-        // Tenta conectar o socket apenas se entrar na aba online, 
-        // ou inicializa logo no começo pra ficar pronto
+        // Tenta conectar o socket apenas APÓS o login ser concluído com sucesso
         socketClient = new SocketClient();
+        window.addEventListener('loginConcluido', () => {
+            socketClient.conectar();
+        });
 
         // Botões de Modo
         document.querySelectorAll(".btn-modo").forEach(btn => {

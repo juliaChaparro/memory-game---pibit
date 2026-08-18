@@ -8,7 +8,10 @@ export default class SocketClient {
         this.onBoardUpdate = null;
         this.onGameOver = null;
         this.onError = null;
-        
+    }
+
+    conectar() {
+        if (this.socket) return; // Já conectado
         try {
             if (typeof io !== 'undefined') {
                 this.socket = io({ withCredentials: true });
