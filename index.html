@@ -58,6 +58,9 @@
 
                     if (configData.clientId) {
                         checkGoogleAndRender();
+                    } else {
+                        const btnDiv = document.getElementById("buttonDiv");
+                        if(btnDiv) btnDiv.innerHTML = '<p style="color: #ef4444; font-weight: bold; text-align: center;">Erro Crítico:<br>A variável GOOGLE_CLIENT_ID não foi configurada no painel do Render (Environment Variables).</p>';
                     }
                 } catch(e) {
                     console.error('Erro ao carregar Client ID:', e);
@@ -108,14 +111,17 @@
 
         function concluirLogin() {
             document.getElementById("area-login").classList.add("oculto");
-            // Se o usuário selecionou modo online
-            const modo = window.modoSelecionadoParaJogar || 1;
+            document.getElementById("secao-modos").classList.remove("oculto");
+        }
+
+        function abrirModo(modo) {
+            document.getElementById("area-dificuldade").classList.add("oculto");
+            document.getElementById("area-lobby-online").classList.add("oculto");
+            
             if (modo === 3) {
                 document.getElementById("area-lobby-online").classList.remove("oculto");
-                document.getElementById("area-dificuldade").classList.add("oculto");
             } else {
                 document.getElementById("area-dificuldade").classList.remove("oculto");
-                document.getElementById("area-lobby-online").classList.add("oculto");
             }
         }
     </script>
@@ -131,18 +137,23 @@
                 <span class="titulo-emoji">🌿</span>
                 <h1>Jogo da Memória<br><span class="titulo-destaque">Amazônico</span></h1>
             </div>
-            <p class="subtitulo">Escolha o modo de jogo:</p>
-            <div class="modo-selecao">
-                <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
-                <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (Local)</button>
-                <button id="btn-online" class="btn-modo" data-modo="3">🌐 Online</button>
-            </div>
+            <p class="subtitulo">Autenticação</p>
 
-            <!-- Área de Login -->
-            <div id="area-login" class="oculto" style="margin-top: 20px;">
-                <p class="subtitulo" style="color: #ef4444; font-size: 0.9rem;">Para jogar online, você precisa fazer login.</p>
+            <!-- Área de Login (Aparece primeiro) -->
+            <div id="area-login" style="margin-top: 20px;">
+                <p class="subtitulo" style="color: #10b981; font-size: 0.9rem;">Para jogar, você precisa fazer login.</p>
                 <!-- Renderizaremos o botão do Google via JS aqui dentro -->
                 <div id="buttonDiv" style="display: flex; justify-content: center; margin-top: 10px;"></div> 
+            </div>
+
+            <!-- Área Modos de Jogo (Oculta até logar) -->
+            <div id="secao-modos" class="oculto">
+                <p class="subtitulo">Escolha o modo de jogo:</p>
+                <div class="modo-selecao">
+                    <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
+                    <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (Local)</button>
+                    <button id="btn-online" class="btn-modo" data-modo="3">🌐 Online</button>
+                </div>
             </div>
 
             <!-- Área Dificuldade (Local / Single) -->
@@ -373,28 +384,7 @@
                 btn.classList.add("ativo");
                 modoSelecionado = parseInt(btn.dataset.modo);
                 window.modoSelecionadoParaJogar = modoSelecionado;
-
-                // TODOS OS MODOS EXIGEM LOGIN E USERNAME AGORA
-                if (!window.usuarioLogado || !window.usuarioLogado.username) {
-                    document.getElementById("area-dificuldade").classList.add("oculto");
-                    document.getElementById("area-lobby-online").classList.add("oculto");
-                    document.getElementById("area-login").classList.remove("oculto");
-                    document.getElementById("area-login").querySelector("p").textContent = "Para jogar qualquer modo, você precisa fazer login e escolher um apelido.";
-                    if (window.usuarioLogado && !window.usuarioLogado.username) {
-                        document.getElementById("modal-username").classList.remove("oculto");
-                    }
-                    return;
-                }
-
-                if (modoSelecionado === 3) {
-                    document.getElementById("area-dificuldade").classList.add("oculto");
-                    document.getElementById("area-login").classList.add("oculto");
-                    document.getElementById("area-lobby-online").classList.remove("oculto");
-                } else {
-                    document.getElementById("area-dificuldade").classList.remove("oculto");
-                    document.getElementById("area-lobby-online").classList.add("oculto");
-                    document.getElementById("area-login").classList.add("oculto");
-                }
+                abrirModo(modoSelecionado);
             });
         });
 
