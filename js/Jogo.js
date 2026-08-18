@@ -89,20 +89,20 @@ export default class Jogo {
 
         this.interface.configurarEventosCartas((carta) => {
             if (this.bloqueado) return;
-            const myPlayerIndex = this.socketClient.playerNumber - 1;
             
             // Verifica se é a minha vez com o estado mais atual
-            if (this.estadoOnline.turnIndex !== myPlayerIndex) {
+            if (this.estadoOnline.currentTurn !== this.socketClient.role) {
                 console.log("[Jogo] Clique ignorado: não é sua vez.");
                 return;
             }
             
             const index = parseInt(carta.dataset.index);
             if (!carta.classList.contains("virada") && !carta.classList.contains("encontrado")) {
-                const nomeAnimal = carta.dataset.animal ? carta.dataset.animal.replace('.png', '') : 'Desconhecido';
-                console.log(`Jogador ${this.socketClient.playerNumber} escolheu a carta: ${nomeAnimal} (Online)`);
+                const nomeAnimal = carta.dataset.animal && carta.dataset.animal !== 'desconhecida.png' ? carta.dataset.animal.replace('.png', '') : 'Uma carta secreta';
+                console.log(`Jogador ${this.socketClient.role} escolheu ${nomeAnimal} (Online)`);
+                // Renderização Otimista Opcional (Front-end fake flip): 
+                // this.interface.virarCarta(carta);
                 this.socketClient.virarCarta(index);
-                // Front-end como "Cliente Burro": não vira a carta localmente.
             }
         });
         
@@ -116,6 +116,17 @@ export default class Jogo {
         const cartasElementos = document.querySelectorAll(".carta");
         state.board.forEach((cardState, index) => {
             const cartaEl = cartasElementos[index];
+            
+            // Atualiza a imagem dinamicamente caso o servidor revele o valor
+            if (cardState.value) {
+                 const imgFront = cartaEl.querySelector('.frente img');
+                 if (imgFront && imgFront.src.includes('desconhecida.png')) {
+                     imgFront.src = `assets/cartas/${cardState.value}`;
+                     imgFront.alt = cardState.value.replace('.png', '');
+                     cartaEl.dataset.animal = cardState.value;
+                 }
+            }
+
             if (cardState.isMatched) {
                 this.interface.virarCarta(cartaEl);
                 cartaEl.classList.add("encontrado");
@@ -126,20 +137,39 @@ export default class Jogo {
             }
         });
 
-        // Configura a identificação visual baseado no playerNumber recebido no lobby
-        const myPlayerIndex = this.socketClient.playerNumber - 1;
-        const myPlayer = state.players[myPlayerIndex] || { score: 0, matches: 0 };
-        const otherPlayer = state.players[myPlayerIndex === 0 ? 1 : 0] || { score: 0, matches: 0 };
+        // Configura a identificação visual baseado no role
+        const myPlayer = state.players.find(p => p.role === this.socketClient.role) || { score: 0, matches: 0 };
+        const otherPlayer = state.players.find(p => p.role !== this.socketClient.role) || { score: 0, matches: 0 };
 
         this.interface.atualizarPontuacaoMulti(myPlayer.score, otherPlayer.score);
         this.interface.atualizarParesMulti(myPlayer.matches, otherPlayer.matches);
         
-        // Se for a vez do jogador local, o turno é '1' (visual: azul/Você), senão é '2' (vermelho/Oponente)
-        const visualTurn = state.turnIndex === myPlayerIndex ? 1 : 2;
+        const isMyTurn = state.currentTurn === this.socketClient.role;
+        const visualTurn = isMyTurn ? 1 : 2; 
         this.interface.atualizarTurno(visualTurn, true);
         
-        // Bloqueia cliques gerais durante animação de erro do servidor
-        this.bloqueado = state.isAnimating || (state.turnIndex !== myPlayerIndex);
+        const labelP1 = document.getElementById("label-p1");
+        const labelP2 = document.getElementById("label-p2");
+        if (labelP1 && labelP2) {
+            labelP1.textContent = this.socketClient.role === 'PLAYER_1' ? "Você (P1)" : "Oponente (P1)";
+            labelP2.textContent = this.socketClient.role === 'PLAYER_2' ? "Você (P2)" : "Oponente (P2)";
+        }
+        
+        // Bloqueio visual impenetrável do tabuleiro
+        const areaTabuleiro = document.getElementById("tabuleiro");
+        if (isMyTurn && !state.isAnimating) {
+            this.bloqueado = false;
+            if (areaTabuleiro) {
+                areaTabuleiro.style.pointerEvents = "auto";
+                areaTabuleiro.style.opacity = "1";
+            }
+        } else {
+            this.bloqueado = true;
+            if (areaTabuleiro) {
+                areaTabuleiro.style.pointerEvents = "none";
+                areaTabuleiro.style.opacity = isMyTurn ? "1" : "0.7";
+            }
+        }
     }
 
     iniciarLoopTimerTurno() {
@@ -172,10 +202,12 @@ export default class Jogo {
         const tempoFinal = this.cronometro.segundos;
         this.som.tocarVitoria();
         
+        this.som.tocarVitoria();
+        
         // Determina pts
-        const isWinner = data.winner === this.socketClient.userId;
-        const myPlayer = data.players.find(p => p.id === this.socketClient.userId);
-        const otherPlayer = data.players.find(p => p.id !== this.socketClient.userId) || { score: 0 };
+        const myPlayer = data.players.find(p => p.socketId === this.socketClient.socket.id) || { score: 0, id: '' };
+        const otherPlayer = data.players.find(p => p.socketId !== this.socketClient.socket.id) || { score: 0 };
+        const isWinner = data.winner === myPlayer.id;
         
         this.interface.mostrarModalVitoria(tempoFinal, 0, 0, this.modo, myPlayer.score, otherPlayer.score);
         const mensagem = document.getElementById("modal-mensagem-vitoria");

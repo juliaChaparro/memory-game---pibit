@@ -3,7 +3,7 @@ export default class SocketClient {
         this.socket = null;
         this.userId = 'user_' + Math.random().toString(36).substring(2, 9);
         this.roomId = null;
-        this.playerNumber = null; // 1 ou 2
+        this.role = null; // 'PLAYER_1' ou 'PLAYER_2'
         this.onGameStart = null;
         this.onBoardUpdate = null;
         this.onGameOver = null;
@@ -26,8 +26,8 @@ export default class SocketClient {
 
     _configurarEventos() {
         this.socket.on('player_assigned', (data) => {
-            this.playerNumber = data.playerNumber;
-            console.log('Papel recebido: Jogador ' + this.playerNumber);
+            this.role = data.role;
+            console.log('Papel recebido: ' + this.role);
         });
 
         this.socket.on('room_created', (data) => {

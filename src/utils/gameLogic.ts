@@ -1,6 +1,6 @@
 export interface Card {
   id: number;
-  value: string;
+  value: string | null;
   isFlipped: boolean;
   isMatched: boolean;
 }
@@ -10,20 +10,36 @@ export interface Player {
   socketId: string;
   score: number;
   matches: number;
-  playerNumber: 1 | 2; // Papel fixo
+  role: 'PLAYER_1' | 'PLAYER_2';
+  hits: number;
+  misses: number;
+  totalMoves: number;
+  userName?: string;
+  avatarUrl?: string;
 }
 
 export interface GameState {
   board: Card[];
   players: Player[];
-  turnIndex: number;
+  currentTurn: 'PLAYER_1' | 'PLAYER_2';
   matches: number;
   status: 'WAITING' | 'PLAYING' | 'FINISHED';
   flippedCards?: number[];
   pairs: number;
   cols: number;
-  isAnimating: boolean; // Controla se o front-end deve travar a tela
-  turnEndsAt?: number; // Timestamp de quando o turno acaba
+  isAnimating: boolean; 
+  turnEndsAt?: number; 
+  startTime?: number;
+}
+
+export function getSanitizedState(state: GameState): GameState {
+  return {
+    ...state,
+    board: state.board.map(card => ({
+      ...card,
+      value: (card.isFlipped || card.isMatched) ? card.value : null
+    }))
+  };
 }
 
 export function initializeBoard(pares: number): Card[] {
@@ -83,16 +99,21 @@ export function processFlip(state: GameState, cardIndex: number): { gameOver: bo
     const [idx1, idx2] = state.flippedCards as [number, number];
     const card1 = state.board[idx1];
     const card2 = state.board[idx2];
+    
+    const currentPlayer = state.players.find(p => p.role === state.currentTurn);
+    if (currentPlayer) {
+      currentPlayer.totalMoves += 1;
+    }
 
     if (card1 && card2 && card1.value === card2.value) {
       card1.isMatched = true;
       card2.isMatched = true;
       
-      const currentPlayer = state.players[state.turnIndex];
       if (currentPlayer) {
         const pontosBase = 100 + (state.cols - 2) * 20;
         currentPlayer.score += pontosBase;
         currentPlayer.matches += 1;
+        currentPlayer.hits += 1;
       }
       
       state.matches += 1;
@@ -100,9 +121,9 @@ export function processFlip(state: GameState, cardIndex: number): { gameOver: bo
       state.flippedCards = [];
     } else {
       isMatch = false;
-      const currentPlayer = state.players[state.turnIndex];
       if (currentPlayer) {
         currentPlayer.score = Math.max(0, currentPlayer.score - 10);
+        currentPlayer.misses += 1;
       }
     }
   }

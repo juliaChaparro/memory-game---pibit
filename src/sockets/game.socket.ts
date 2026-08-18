@@ -6,10 +6,12 @@ import { initializeBoard, processFlip } from '../utils/gameLogic';
 const activeRooms = new Map<string, GameState>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
 
+import { getSanitizedState } from '../utils/gameLogic';
+
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
@@ -27,13 +29,12 @@ function startTurnTimer(roomId: string, io: Server) {
   const state = activeRooms.get(roomId);
   if (!state || state.status !== 'PLAYING') return;
 
-  state.turnEndsAt = Date.now() + 20000; // 20 segundos
+  state.turnEndsAt = Date.now() + 20000;
 
   const timer = setTimeout(() => {
     const st = activeRooms.get(roomId);
     if (!st || st.status !== 'PLAYING') return;
     
-    // Desvira cartas que ficaram pendentes
     if (st.flippedCards) {
       for (let idx of st.flippedCards) {
         const card = st.board[idx];
@@ -41,15 +42,51 @@ function startTurnTimer(roomId: string, io: Server) {
       }
     }
     st.flippedCards = [];
-    st.turnIndex = st.turnIndex === 0 ? 1 : 0;
+    st.currentTurn = st.currentTurn === 'PLAYER_1' ? 'PLAYER_2' : 'PLAYER_1';
     
-    io.to(roomId).emit('turn_timeout'); // Front-end pode exibir um aviso se desejar
+    io.to(roomId).emit('turn_timeout');
     
-    startTurnTimer(roomId, io); // Recomeça pro outro jogador
-    io.to(roomId).emit('board_update', st);
+    startTurnTimer(roomId, io);
+    io.to(roomId).emit('board_update', getSanitizedState(st));
   }, 20000);
 
   roomTimers.set(roomId, timer);
+}
+
+function finalizeGame(roomId: string, state: GameState, io: Server, prisma: PrismaClient, reason?: string) {
+  state.status = 'FINISHED';
+  clearTurnTimer(roomId);
+  
+  let winner: typeof state.players[0] | undefined;
+  if (reason === 'disconnect') {
+    winner = state.players.find(p => p.role === state.currentTurn); // if someone disconnected, we can just say the remaining one wins (handled specifically below)
+  } else {
+    winner = state.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+  }
+
+  const payload: any = { players: state.players };
+  if (winner) payload.winner = winner.id;
+  if (reason) payload.reason = reason;
+
+  io.to(roomId).emit('game_over', payload);
+
+  const timeSpent = Math.floor((Date.now() - (state.startTime || Date.now())) / 1000);
+
+  for (const p of state.players) {
+    prisma.gameSession.create({
+      data: {
+        userId: p.id,
+        gameMode: 'MULTIPLAYER_ONLINE',
+        score: p.score,
+        hits: p.hits,
+        misses: p.misses,
+        totalMoves: p.totalMoves,
+        timeSpent: timeSpent
+      }
+    }).catch(console.error);
+  }
+  
+  activeRooms.delete(roomId);
 }
 
 export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClient) {
@@ -63,18 +100,24 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     
     const state: GameState = {
       board: initializeBoard(pares),
-      players: [{ id: userId, socketId: socket.id, score: 0, matches: 0, playerNumber: 1 }],
-      turnIndex: 0,
+      players: [{ 
+        id: userId, socketId: socket.id, score: 0, matches: 0, role: 'PLAYER_1', 
+        hits: 0, misses: 0, totalMoves: 0, 
+        userName: socket.data.user?.username || socket.data.user?.name, 
+        avatarUrl: socket.data.user?.avatarUrl 
+      }],
+      currentTurn: 'PLAYER_1',
       matches: 0,
       status: 'WAITING',
       pairs: pares,
       cols,
-      isAnimating: false
+      isAnimating: false,
+      startTime: Date.now()
     };
     activeRooms.set(roomId, state);
     
-    socket.emit('player_assigned', { playerNumber: 1 });
-    socket.emit('room_created', { roomId, state });
+    socket.emit('player_assigned', { role: 'PLAYER_1' });
+    socket.emit('room_created', { roomId, state: getSanitizedState(state) });
   });
 
   socket.on('join_room_code', async (data: { roomId: string }) => {
@@ -96,37 +139,24 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     
     let player = state.players.find(p => p.id === userId);
     if (!player) {
-      player = { id: userId, socketId: socket.id, score: 0, matches: 0, playerNumber: 2 };
+      player = { 
+        id: userId, socketId: socket.id, score: 0, matches: 0, role: 'PLAYER_2', 
+        hits: 0, misses: 0, totalMoves: 0, 
+        userName: socket.data.user?.username || socket.data.user?.name, 
+        avatarUrl: socket.data.user?.avatarUrl 
+      };
       state.players.push(player);
     }
     
-    socket.emit('player_assigned', { playerNumber: player.playerNumber });
+    socket.emit('player_assigned', { role: player.role });
 
     if (state.players.length === 2) {
       state.status = 'PLAYING';
+      state.startTime = Date.now();
       
-      // Inicia timer assim que o jogo começa
       startTurnTimer(roomId, io);
       
-      io.to(roomId).emit('game_start', state);
-      
-      const player1Id = state.players[0]?.id;
-      const player2Id = state.players[1]?.id;
-      
-      if (player1Id && player2Id) {
-        try {
-          await prisma.room.create({
-            data: {
-              id: roomId,
-              status: 'PLAYING',
-              player1Id,
-              player2Id
-            }
-          });
-        } catch(e) {
-          // Ignora conflitos
-        }
-      }
+      io.to(roomId).emit('game_start', getSanitizedState(state));
     }
   });
 
@@ -135,24 +165,17 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     const state = activeRooms.get(roomId);
     if (!state || state.status !== 'PLAYING') return;
     
-    if (state.isAnimating) {
-      console.log(`[Socket] Ignores flip from ${socket.id} (Animating)`);
-      return;
-    }
+    if (state.isAnimating) return;
 
-    const currentPlayer = state.players[state.turnIndex];
-    if (!currentPlayer || currentPlayer.socketId !== socket.id) {
-      console.log(`[Socket] Bloqueado flip do ${socket.id}. Turno atual é do socket ${currentPlayer?.socketId}`);
-      return;
-    }
+    const currentPlayer = state.players.find(p => p.role === state.currentTurn);
+    if (!currentPlayer || currentPlayer.socketId !== socket.id) return;
 
     const { gameOver, isMatch } = processFlip(state, cardIndex);
     
     if (isMatch === false) {
-      // Errou. Pausa o timer atual durante a animação
       clearTurnTimer(roomId);
       state.isAnimating = true;
-      io.to(roomId).emit('board_update', state);
+      io.to(roomId).emit('board_update', getSanitizedState(state));
       
       setTimeout(() => {
         if (state.flippedCards) {
@@ -162,50 +185,30 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
            }
         }
         state.flippedCards = [];
-        state.turnIndex = state.turnIndex === 0 ? 1 : 0;
+        state.currentTurn = state.currentTurn === 'PLAYER_1' ? 'PLAYER_2' : 'PLAYER_1';
         state.isAnimating = false;
         
-        // Retoma o timer para o próximo jogador
         startTurnTimer(roomId, io);
-        io.to(roomId).emit('board_update', state);
+        io.to(roomId).emit('board_update', getSanitizedState(state));
       }, 1500);
     } else if (isMatch === true) {
-      // Acertou. Reinicia o timer pro jogador tentar outro par
       startTurnTimer(roomId, io);
-      io.to(roomId).emit('board_update', state);
+      io.to(roomId).emit('board_update', getSanitizedState(state));
     } else {
-      // Virou a 1a carta. Não reseta o timer. Apenas atualiza a view.
-      io.to(roomId).emit('board_update', state);
+      io.to(roomId).emit('board_update', getSanitizedState(state));
     }
 
     if (gameOver) {
-      state.status = 'FINISHED';
-      clearTurnTimer(roomId);
-      const winner = state.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
-      io.to(roomId).emit('game_over', { winner: winner.id, players: state.players });
-      
-      prisma.room.update({
-        where: { id: roomId },
-        data: { status: 'FINISHED', winnerId: winner.id }
-      }).catch(console.error);
-      
-      activeRooms.delete(roomId);
+      finalizeGame(roomId, state, io, prisma);
     }
   });
 
   socket.on('disconnect', () => {
     for (const [roomId, state] of activeRooms.entries()) {
-      const playerIndex = state.players.findIndex(p => p.socketId === socket.id);
-      if (playerIndex !== -1) {
-        state.status = 'FINISHED';
-        clearTurnTimer(roomId);
-        const winnerIndex = playerIndex === 0 ? 1 : 0;
-        const winner = state.players[winnerIndex];
-        
-        if (winner) {
-          io.to(roomId).emit('game_over', { reason: 'disconnect', winner: winner.id });
-        }
-        activeRooms.delete(roomId);
+      const player = state.players.find(p => p.socketId === socket.id);
+      if (player) {
+        state.currentTurn = player.role === 'PLAYER_1' ? 'PLAYER_2' : 'PLAYER_1'; // other player wins
+        finalizeGame(roomId, state, io, prisma, 'disconnect');
       }
     }
   });

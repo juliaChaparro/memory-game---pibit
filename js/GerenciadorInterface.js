@@ -90,10 +90,10 @@ export default class GerenciadorInterface {
         void alerta.offsetWidth; // Força o reflow para a animação CSS reiniciar
         
         if (turno === 1) {
-            alerta.innerHTML = `Vez do <br><span>Jogador 1</span>`;
+            alerta.innerHTML = `<span>Sua vez de virar as cartas!</span>`;
             alerta.classList.add("p1");
         } else {
-            alerta.innerHTML = `Vez do <br><span>Jogador 2</span>`;
+            alerta.innerHTML = `<span>Aguarde a jogada do oponente...</span>`;
             alerta.classList.add("p2");
         }
         

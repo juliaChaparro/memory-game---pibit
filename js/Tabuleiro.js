@@ -55,7 +55,7 @@ export default class Tabuleiro {
         tabuleiroElemento.innerHTML = "";
 
         // Mapeia do formato do servidor para o formato local
-        this.cartas = cartasServidor.map(c => new Carta(c.id, c.value));
+        this.cartas = cartasServidor.map(c => new Carta(c.id, c.value || "desconhecida.png"));
 
         this._renderizar(tabuleiroElemento);
     }
