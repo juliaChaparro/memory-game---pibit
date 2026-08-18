@@ -23,5 +23,5 @@ RUN npm run build
 # Expõe a porta que o servidor Node/Express utiliza
 EXPOSE 3000
 
-# Comando para iniciar o servidor correto
-CMD ["node", "dist/server.js"]
+# Comando para iniciar o servidor correto e atualizar as tabelas do banco
+CMD ["npm", "start"]
