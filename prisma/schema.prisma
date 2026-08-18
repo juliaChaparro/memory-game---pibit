@@ -41,13 +41,14 @@ model GameHistory {
 }
 
 model GameSession {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  modo      Int
-  pares     Int
-  tempo     Int
-  pontuacao Int
-  erros     Int
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  gameMode   String
+  score      Int
+  hits       Int
+  misses     Int
+  totalMoves Int
+  timeSpent  Int
+  createdAt  DateTime @default(now())
 }

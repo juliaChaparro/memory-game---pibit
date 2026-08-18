@@ -41,7 +41,6 @@ const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
 const client_1 = require("@prisma/client");
-const adapter_libsql_1 = require("@prisma/adapter-libsql");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const game_socket_1 = require("./sockets/game.socket");
 const auth_route_1 = require("./routes/auth.route");
@@ -50,9 +49,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const dotenv = __importStar(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 dotenv.config();
-const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
-const adapter = new adapter_libsql_1.PrismaLibSql({ url: dbUrl });
-const prisma = new client_1.PrismaClient({ adapter });
+const prisma = new client_1.PrismaClient();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: true,
@@ -80,23 +77,24 @@ app.post('/api/game-sessions', async (req, res) => {
         if (!user || !user.username) {
             return res.status(403).json({ error: 'Perfil incompleto. Defina um username antes de jogar.' });
         }
-        const { modo, pares, tempo, pontuacao, erros } = req.body;
+        const { gameMode, score, hits, misses, totalMoves, timeSpent } = req.body;
         // Conversão explícita para Int, prevenindo falhas do Prisma com strings do Front-end
         const session = await prisma.gameSession.create({
             data: {
                 userId,
-                modo: Number(modo) || 0,
-                pares: Number(pares) || 0,
-                tempo: Number(tempo) || 0,
-                pontuacao: Number(pontuacao) || 0,
-                erros: Number(erros) || 0
+                gameMode: String(gameMode) || 'SOLO',
+                score: Number(score) || 0,
+                hits: Number(hits) || 0,
+                misses: Number(misses) || 0,
+                totalMoves: Number(totalMoves) || 0,
+                timeSpent: Number(timeSpent) || 0
             }
         });
-        logger_1.logger.info(`[DB_SUCCESS] Nova partida salva! Modo: ${modo}, Pontos: ${pontuacao}, User: ${user.username}`);
+        console.log('[GAME_SAVE_SUCCESS] Partida registrada para o jogador:', userId);
         res.status(201).json(session);
     }
     catch (error) {
-        logger_1.logger.error(`[DB_ERROR] Erro na rota /api/game-sessions: ${error.message}`, { stack: error.stack });
+        console.error('[GAME_SAVE_ERROR] Falha ao salvar no banco:', error);
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({ error: 'Acesso negado: Token inválido.' });
         }

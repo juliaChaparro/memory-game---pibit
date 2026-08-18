@@ -49,24 +49,25 @@ app.post('/api/game-sessions', async (req, res) => {
             return res.status(403).json({ error: 'Perfil incompleto. Defina um username antes de jogar.' });
         }
 
-        const { modo, pares, tempo, pontuacao, erros } = req.body;
+        const { gameMode, score, hits, misses, totalMoves, timeSpent } = req.body;
         
         // Conversão explícita para Int, prevenindo falhas do Prisma com strings do Front-end
         const session = await prisma.gameSession.create({
             data: {
                 userId,
-                modo: Number(modo) || 0,
-                pares: Number(pares) || 0,
-                tempo: Number(tempo) || 0,
-                pontuacao: Number(pontuacao) || 0,
-                erros: Number(erros) || 0
+                gameMode: String(gameMode) || 'SOLO',
+                score: Number(score) || 0,
+                hits: Number(hits) || 0,
+                misses: Number(misses) || 0,
+                totalMoves: Number(totalMoves) || 0,
+                timeSpent: Number(timeSpent) || 0
             }
         });
         
-        logger.info(`[DB_SUCCESS] Nova partida salva! Modo: ${modo}, Pontos: ${pontuacao}, User: ${user.username}`);
+        console.log('[GAME_SAVE_SUCCESS] Partida registrada para o jogador:', userId);
         res.status(201).json(session);
     } catch (error: any) {
-        logger.error(`[DB_ERROR] Erro na rota /api/game-sessions: ${error.message}`, { stack: error.stack });
+        console.error('[GAME_SAVE_ERROR] Falha ao salvar no banco:', error);
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({ error: 'Acesso negado: Token inválido.' });
         }

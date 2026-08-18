@@ -294,15 +294,20 @@ export default class Jogo {
         const ptsP1 = this.pontuacaoP1.getPontuacao();
         const ptsP2 = this.pontuacaoP2.getPontuacao();
 
+        let gameModeStr = 'SOLO';
+        if (this.modo === 2) gameModeStr = 'LOCAL_DUO';
+        if (this.modo === 3) gameModeStr = 'MULTIPLAYER_ONLINE';
+
         fetch('/api/game-sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                modo: this.modo,
-                pares: this._pares,
-                tempo: tempoFinal,
-                pontuacao: this.modo === 1 ? pontosFinal : Math.max(ptsP1, ptsP2),
-                erros: this.erros
+                gameMode: gameModeStr,
+                score: this.modo === 1 ? pontosFinal : Math.max(ptsP1, ptsP2),
+                hits: this._pares,
+                misses: this.erros,
+                totalMoves: this._pares + this.erros,
+                timeSpent: tempoFinal
             })
         }).then(res => {
             if (res.ok) console.log('Partida salva com sucesso no banco de dados!');
