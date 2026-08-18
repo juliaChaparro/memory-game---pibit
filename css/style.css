@@ -13,10 +13,11 @@
 body {
     min-height: 100vh;
     font-family: 'Outfit', Arial, sans-serif;
-    background:
-        radial-gradient(ellipse at 20% 10%, #134e1a 0%, transparent 55%),
-        radial-gradient(ellipse at 80% 90%, #0d3b0e 0%, transparent 55%),
-        linear-gradient(160deg, #0f2612 0%, #1a4a1e 40%, #0e2e11 100%);
+    background-image: url('../assets/background/Feliciano\ lana.jpeg');
+    background-size: max(100vw, 100vh);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: #fff;
     overflow-x: hidden;
 }
@@ -42,17 +43,13 @@ body {
 }
 
 .tela-inicial-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 28px;
-    padding: 50px 60px;
-    max-width: 700px;
+    background-color: #1a472a;
+    border-radius: 16px;
+    padding: 40px 30px;
+    max-width: 400px;
     width: 100%;
     text-align: center;
-    box-shadow:
-        0 30px 80px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .titulo-wrapper {
@@ -66,10 +63,11 @@ body {
 .titulo-emoji {
     font-size: 3.5rem;
     line-height: 1;
+    filter: drop-shadow(0 4px 10px rgba(46, 204, 113, 0.3));
 }
 
 h1 {
-    font-size: 2.6rem;
+    font-size: 2.1rem;
     font-weight: 900;
     line-height: 1.2;
     text-align: left;
@@ -78,10 +76,8 @@ h1 {
 }
 
 .titulo-destaque {
-    background: linear-gradient(90deg, #4ade80, #22c55e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #2ecc71;
+    font-weight: 900;
 }
 
 .subtitulo {
@@ -89,6 +85,71 @@ h1 {
     font-size: 1.15rem;
     color: rgba(255, 255, 255, 0.65);
     font-weight: 500;
+}
+
+/* ======================================== */
+/* AUTENTICAÇÃO UI                          */
+/* ======================================== */
+
+.auth-body {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.auth-label {
+    color: #e2e8f0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 15px;
+}
+
+.auth-instruction {
+    color: #86efac;
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: 24px;
+}
+
+.auth-action {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+}
+
+/* ======================================== */
+/* LOGOS FOOTER                             */
+/* ======================================== */
+
+.logos-footer {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.logos-footer img {
+    max-height: 44px;
+    width: auto;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.logos-footer img:hover {
+    transform: scale(1.05);
 }
 
 /* ======================================== */

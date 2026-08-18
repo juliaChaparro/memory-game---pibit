@@ -181,13 +181,13 @@
                 <span class="titulo-emoji">🌿</span>
                 <h1>Jogo da Memória<br><span class="titulo-destaque">Amazônico</span></h1>
             </div>
-            <p class="subtitulo">Autenticação</p>
-
             <!-- Área de Login (Aparece primeiro) -->
-            <div id="area-login" style="margin-top: 20px;">
-                <p class="subtitulo" style="color: #10b981; font-size: 0.9rem;">Para jogar, você precisa fazer login.</p>
-                <!-- Renderizaremos o botão do Google via JS aqui dentro -->
-                <div id="buttonDiv" style="display: flex; justify-content: center; margin-top: 10px;"></div> 
+            <div id="area-login" class="auth-body">
+                <p class="auth-label">Autenticação</p>
+                <p class="auth-instruction">Para jogar, você precisa fazer login.</p>
+                <div class="auth-action">
+                    <div id="buttonDiv"></div> 
+                </div>
             </div>
 
             <!-- Área Modos de Jogo (Oculta até logar) -->
@@ -281,12 +281,10 @@
     </div>
 
     <!-- Logos flutuantes no canto inferior direito -->
-    <div class="logos-footer"
-        style="position: fixed; bottom: 20px; right: 20px; background: rgb(255, 255, 255); padding: 10px 15px; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1000;">
-        <img src="assets/background/UfamComTexto.png" alt="UFAM" style="height: 45px; object-fit: contain;">
-        <img src="assets/background/logo_icomp.png" alt="ICOMP" style="height: 40px; object-fit: contain;">
-        <img src="assets/background/Logo do museu amazonico.PNG" alt="Museu Amazônico"
-            style="height: 40px; object-fit: contain;">
+    <div class="logos-footer">
+        <img src="assets/background/UfamComTexto.png" alt="UFAM">
+        <img src="assets/background/logo_icomp.png" alt="ICOMP">
+        <img src="assets/background/Logo do museu amazonico.PNG" alt="Museu Amazônico">
     </div>
 
     <!-- ===== JOGO ===== -->
