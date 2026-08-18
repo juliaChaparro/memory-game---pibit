@@ -11,14 +11,15 @@ COPY prisma ./prisma/
 # Instala as dependências do projeto
 RUN npm install
 
-# Gera o client do Prisma
-RUN npx prisma generate
-
 # Copia o restante do código da aplicação
 COPY . .
 
-# Expõe a porta que o servidor Node/Express utiliza
-EXPOSE 3333
+# Gera o client do Prisma e compila o TypeScript
+RUN npx prisma generate
+RUN npm run build
 
-# Comando para iniciar o servidor
-CMD ["node", "server.js"]
+# Expõe a porta que o servidor Node/Express utiliza
+EXPOSE 3000
+
+# Comando para iniciar o servidor correto
+CMD ["node", "dist/server.js"]

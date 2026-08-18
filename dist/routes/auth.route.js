@@ -8,6 +8,7 @@ const express_1 = require("express");
 const google_auth_library_1 = require("google-auth-library");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const logger_1 = require("../utils/logger");
+const validation_1 = require("../utils/validation");
 exports.authRouter = (0, express_1.Router)();
 // A instância do Prisma será passada no setup
 let prisma;
@@ -90,11 +91,14 @@ exports.authRouter.post('/google', async (req, res) => {
         });
         res.json({
             success: true,
+            requireUsername: !user.username,
             user: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                avatarUrl: user.avatarUrl
+                avatarUrl: user.avatarUrl,
+                username: user.username,
+                playerTag: user.playerTag
             }
         });
     }
@@ -103,18 +107,89 @@ exports.authRouter.post('/google', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-exports.authRouter.get('/me', (req, res) => {
+exports.authRouter.post('/set-username', async (req, res) => {
+    try {
+        // Authenticate the user from cookie first
+        const token = req.cookies?.auth_token;
+        if (!token) {
+            return res.status(401).json({ error: 'Não autenticado.' });
+        }
+        const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+        const userId = decoded.userId;
+        const { username } = req.body;
+        if (!username) {
+            return res.status(400).json({ error: 'Username não fornecido.' });
+        }
+        if (!(0, validation_1.isValidUsername)(username)) {
+            return res.status(400).json({ error: 'Formato inválido. Use 3-16 caracteres, apenas letras, números e underlines.' });
+        }
+        if ((0, validation_1.containsProfanity)(username)) {
+            return res.status(400).json({ error: 'O nome escolhido contém termos não permitidos.' });
+        }
+        // Since we are using SQLite, we can just do a case-insensitive find using raw if needed,
+        // or just fetch all and check, but Prisma's `equals` might be case sensitive in sqlite.
+        // Let's do a case insensitive comparison manually since there are no users yet, or just rely on exact match.
+        // In SQLite with Prisma, mode: 'insensitive' is not supported on findFirst.
+        const allUsers = await prisma.user.findMany({
+            where: {
+                username: { not: null }
+            }
+        });
+        const existing = allUsers.find(u => u.username?.toLowerCase() === username.toLowerCase());
+        if (existing) {
+            return res.status(400).json({ error: 'Este nome de usuário já está em uso.' });
+        }
+        let playerTag = (0, validation_1.generatePlayerTag)();
+        let tagExists = await prisma.user.findUnique({ where: { playerTag } });
+        while (tagExists) {
+            playerTag = (0, validation_1.generatePlayerTag)();
+            tagExists = await prisma.user.findUnique({ where: { playerTag } });
+        }
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                username,
+                playerTag
+            }
+        });
+        res.status(200).json({
+            success: true,
+            message: 'Username definido com sucesso.',
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                avatarUrl: updatedUser.avatarUrl,
+                username: updatedUser.username,
+                playerTag: updatedUser.playerTag
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error(`[ERRO_PRISMA_DB] /api/auth/set-username: ${error}`);
+        return res.status(500).json({ error: 'Erro interno ao registrar username.' });
+    }
+});
+exports.authRouter.get('/me', async (req, res) => {
     const token = req.cookies?.auth_token;
     if (!token) {
         return res.status(401).json({ authenticated: false });
     }
     try {
         const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
-        res.json({ authenticated: true, user: decoded });
+        // Refresh user from DB to get the latest username and playerTag
+        const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+        if (!user) {
+            return res.status(401).json({ authenticated: false });
+        }
+        res.json({ authenticated: true, user });
     }
     catch (err) {
         res.status(401).json({ authenticated: false });
     }
+});
+exports.authRouter.get('/config', (req, res) => {
+    res.json({ clientId: process.env.GOOGLE_CLIENT_ID || '' });
 });
 exports.authRouter.post('/logout', (req, res) => {
     res.clearCookie('auth_token');

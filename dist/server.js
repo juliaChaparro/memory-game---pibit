@@ -69,10 +69,22 @@ app.use(express_1.default.static(path_1.default.join(__dirname, '..')));
 app.use('/api/auth', (0, auth_route_1.setupAuthRoutes)(prisma));
 app.post('/api/game-sessions', async (req, res) => {
     try {
+        const token = req.cookies?.auth_token;
+        if (!token) {
+            return res.status(401).json({ error: 'Acesso negado: Usuário não autenticado.' });
+        }
+        const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-development-only';
+        const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+        const userId = decoded.userId;
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user || !user.username) {
+            return res.status(403).json({ error: 'Perfil incompleto. Defina um username antes de jogar.' });
+        }
         const { modo, pares, tempo, pontuacao, erros } = req.body;
         // Conversão explícita para Int, prevenindo falhas do Prisma com strings do Front-end
         const session = await prisma.gameSession.create({
             data: {
+                userId,
                 modo: Number(modo) || 0,
                 pares: Number(pares) || 0,
                 tempo: Number(tempo) || 0,
@@ -80,11 +92,14 @@ app.post('/api/game-sessions', async (req, res) => {
                 erros: Number(erros) || 0
             }
         });
-        logger_1.logger.info(`[DB_SUCCESS] Nova partida salva! Modo: ${modo}, Pontos: ${pontuacao}`);
+        logger_1.logger.info(`[DB_SUCCESS] Nova partida salva! Modo: ${modo}, Pontos: ${pontuacao}, User: ${user.username}`);
         res.status(201).json(session);
     }
     catch (error) {
         logger_1.logger.error(`[DB_ERROR] Erro na rota /api/game-sessions: ${error.message}`, { stack: error.stack });
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: 'Acesso negado: Token inválido.' });
+        }
         res.status(500).json({ error: 'Erro interno ao salvar a partida. Detalhes registrados nos logs do servidor.' });
     }
 });
