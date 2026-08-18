@@ -99,7 +99,8 @@ export default class Jogo {
             
             const index = parseInt(carta.dataset.index);
             if (!carta.classList.contains("virada") && !carta.classList.contains("encontrado")) {
-                console.log(`Jogador ${this.socketClient.playerNumber} clicou na carta de índice ${index} (Online)`);
+                const nomeAnimal = carta.dataset.animal ? carta.dataset.animal.replace('.png', '') : 'Desconhecido';
+                console.log(`Jogador ${this.socketClient.playerNumber} escolheu a carta: ${nomeAnimal} (Online)`);
                 this.socketClient.virarCarta(index);
                 // Front-end como "Cliente Burro": não vira a carta localmente.
             }
@@ -193,10 +194,11 @@ export default class Jogo {
         if (carta.classList.contains("encontrado")) return;
 
         const index = carta.dataset.index;
+        const nomeAnimal = carta.dataset.animal ? carta.dataset.animal.replace('.png', '') : 'Desconhecido';
         if (this.modo === 2) {
-            console.log(`Jogador ${this.turnoAtual} clicou na carta de índice ${index} (Local)`);
+            console.log(`Jogador ${this.turnoAtual} escolheu a carta: ${nomeAnimal} (Local)`);
         } else {
-            console.log(`Você clicou na carta de índice ${index} (Solo)`);
+            console.log(`Você escolheu a carta: ${nomeAnimal} (Solo)`);
         }
 
         this.interface.virarCarta(carta);
@@ -214,9 +216,12 @@ export default class Jogo {
     }
 
     verificarPar() {
-        const acertou = this.primeiraCarta.dataset.animal === this.segundaCarta.dataset.animal;
+        const nomeCarta1 = this.primeiraCarta.dataset.animal.replace('.png', '');
+        const nomeCarta2 = this.segundaCarta.dataset.animal.replace('.png', '');
+        const acertou = nomeCarta1 === nomeCarta2;
 
         if (acertou) {
+            console.log(`✨ Você acertou o par de: ${nomeCarta1}!`);
             const pontosBase = 100 + (this.colunas - 2) * 20;
             const segundosDecorridos = this.cronometro.segundos;
             const bonusVelocidade = Math.max(0, 30 - segundosDecorridos) * 2;
@@ -252,6 +257,7 @@ export default class Jogo {
             }
 
         } else {
+            console.log(`❌ Que pena! Você errou: tentou juntar ${nomeCarta1} com ${nomeCarta2}`);
             this.erros++;
             const penalidade = 10;
 
