@@ -99,6 +99,7 @@ export default class Jogo {
             
             const index = parseInt(carta.dataset.index);
             if (!carta.classList.contains("virada") && !carta.classList.contains("encontrado")) {
+                console.log(`Jogador ${this.socketClient.playerNumber} clicou na carta de índice ${index} (Online)`);
                 this.socketClient.virarCarta(index);
                 // Front-end como "Cliente Burro": não vira a carta localmente.
             }
@@ -190,6 +191,13 @@ export default class Jogo {
         if (this.bloqueado) return;
         if (carta.classList.contains("virada")) return;
         if (carta.classList.contains("encontrado")) return;
+
+        const index = carta.dataset.index;
+        if (this.modo === 2) {
+            console.log(`Jogador ${this.turnoAtual} clicou na carta de índice ${index} (Local)`);
+        } else {
+            console.log(`Você clicou na carta de índice ${index} (Solo)`);
+        }
 
         this.interface.virarCarta(carta);
 
