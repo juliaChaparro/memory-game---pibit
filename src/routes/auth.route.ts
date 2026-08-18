@@ -114,8 +114,9 @@ authRouter.post('/google', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error(`[AUTH_FAIL] Erro ao autenticar: ${error instanceof Error ? error.message : String(error)}`);
-    res.status(500).json({ error: 'Internal Server Error' });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error(`[AUTH_FAIL] Erro ao autenticar: ${errorMsg}`);
+    res.status(500).json({ error: `Internal Server Error: ${errorMsg}` });
   }
 });
 

@@ -3,8 +3,6 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
-import { PrismaLibSql } from '@prisma/adapter-libsql';
-import { createClient } from '@libsql/client';
 import jwt from 'jsonwebtoken';
 import { handleGameSockets } from './sockets/game.socket';
 import { setupAuthRoutes } from './routes/auth.route';
@@ -14,9 +12,9 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config();
-const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
-const adapter = new PrismaLibSql({ url: dbUrl });
-const prisma = new PrismaClient({ adapter });
+
+const prisma = new PrismaClient();
+
 const app = express();
 app.use(cors({
   origin: true,
