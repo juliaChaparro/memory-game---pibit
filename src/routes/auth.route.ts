@@ -49,26 +49,26 @@ authRouter.post('/google', async (req, res) => {
       if (email) {
         user = await prisma.user.findUnique({ where: { email } });
       }
-      
+
       if (user) {
         // Link conta existente
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { 
-            googleId, 
-            name: name || null, 
-            avatarUrl: avatarUrl || null 
+          data: {
+            googleId,
+            name: name || null,
+            avatarUrl: avatarUrl || null
           }
         });
         logger.info(`[AUTH_SUCCESS] Conta existente vinculada ao Google: ${email}`);
       } else {
         // Criação de nova conta
         user = await prisma.user.create({
-          data: { 
-            googleId, 
-            email: email || null, 
-            name: name || null, 
-            avatarUrl: avatarUrl || null 
+          data: {
+            googleId,
+            email: email || null,
+            name: name || null,
+            avatarUrl: avatarUrl || null
           }
         });
         logger.info(`[AUTH_SUCCESS] Nova conta Google registrada: ${email}`);
@@ -77,9 +77,9 @@ authRouter.post('/google', async (req, res) => {
       // Atualiza possíveis alterações de foto/nome
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { 
-          name: name || null, 
-          avatarUrl: avatarUrl || null 
+        data: {
+          name: name || null,
+          avatarUrl: avatarUrl || null
         }
       });
       logger.info(`[AUTH_SUCCESS] Usuário Google logado: ${email}`);
@@ -154,7 +154,7 @@ authRouter.post('/set-username', async (req, res) => {
         username: { not: null }
       }
     });
-    
+
     const existing = allUsers.find(u => u.username?.toLowerCase() === username.toLowerCase());
     if (existing) {
       return res.status(400).json({ error: 'Este nome de usuário já está em uso.' });
@@ -162,8 +162,8 @@ authRouter.post('/set-username', async (req, res) => {
 
     let playerTag = generatePlayerTag();
     let tagExists = await prisma.user.findUnique({ where: { playerTag } });
-    
-    while(tagExists) {
+
+    while (tagExists) {
       playerTag = generatePlayerTag();
       tagExists = await prisma.user.findUnique({ where: { playerTag } });
     }
