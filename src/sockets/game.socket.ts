@@ -175,6 +175,7 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     if (isMatch === false) {
       clearTurnTimer(roomId);
       state.isAnimating = true;
+      state.lastMove = 'MISMATCH';
       io.to(roomId).emit('board_update', getSanitizedState(state));
       
       setTimeout(() => {
@@ -187,14 +188,17 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
         state.flippedCards = [];
         state.currentTurn = state.currentTurn === 'PLAYER_1' ? 'PLAYER_2' : 'PLAYER_1';
         state.isAnimating = false;
+        state.lastMove = null;
         
         startTurnTimer(roomId, io);
         io.to(roomId).emit('board_update', getSanitizedState(state));
       }, 1500);
     } else if (isMatch === true) {
+      state.lastMove = 'MATCH';
       startTurnTimer(roomId, io);
       io.to(roomId).emit('board_update', getSanitizedState(state));
     } else {
+      state.lastMove = null;
       io.to(roomId).emit('board_update', getSanitizedState(state));
     }
 

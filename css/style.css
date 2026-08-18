@@ -758,3 +758,26 @@ h1 {
     .carta-interna { border-radius: 10px; }
     .frente, .verso { border-radius: 10px; }
 }
+
+/* =========================================================================
+   UX MULTIPLAYER: Toasts e Destaques de Turno
+   ========================================================================= */
+
+@keyframes fadein {
+    from { opacity: 0; bottom: 0; }
+    to { opacity: 1; bottom: 80px; }
+}
+
+@keyframes fadeout {
+    from { opacity: 1; bottom: 80px; }
+    to { opacity: 0; bottom: 0; }
+}
+
+.turno-ativo {
+    box-shadow: 0 0 15px currentColor;
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+#box-p1 { color: #3b82f6; }
+#box-p2 { color: #ef4444; }

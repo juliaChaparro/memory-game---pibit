@@ -30,6 +30,7 @@ export interface GameState {
   isAnimating: boolean; 
   turnEndsAt?: number; 
   startTime?: number;
+  lastMove?: 'MATCH' | 'MISMATCH' | null;
 }
 
 export function getSanitizedState(state: GameState): GameState {

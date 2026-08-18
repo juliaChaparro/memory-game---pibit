@@ -170,6 +170,16 @@ export default class Jogo {
                 areaTabuleiro.style.opacity = isMyTurn ? "1" : "0.7";
             }
         }
+        
+        // Toast e Efeitos Sonoros com base no lastMove
+        if (state.lastMove === 'MATCH' && this.lastMoveState !== 'MATCH') {
+             const msg = isMyTurn ? "Par encontrado! Jogue novamente!" : "Oponente encontrou um par!";
+             this.interface.exibirToast(msg, isMyTurn ? "#10b981" : "#3b82f6");
+             this.som.tocarAcerto();
+        } else if (state.lastMove === 'MISMATCH' && this.lastMoveState !== 'MISMATCH') {
+             this.som.tocarErro();
+        }
+        this.lastMoveState = state.lastMove;
     }
 
     iniciarLoopTimerTurno() {

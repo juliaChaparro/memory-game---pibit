@@ -77,27 +77,30 @@ export default class GerenciadorInterface {
         }
 
         const alerta = document.getElementById("alerta-turno");
-        if (!alerta) return;
+        if (alerta) alerta.classList.add("oculto"); // Oculta o popup gigante antigo
+    }
 
-        if (!mostrarPopup) {
-            alerta.classList.add("oculto");
-            return;
-        }
+    exibirToast(mensagem, corHex = "#10b981") {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
 
-        // Exibir aviso flutuante gigante de turno
-        // Remove as classes para reiniciar a animação e reflow
-        alerta.classList.remove("animacao-alerta", "p1", "p2", "oculto");
-        void alerta.offsetWidth; // Força o reflow para a animação CSS reiniciar
-        
-        if (turno === 1) {
-            alerta.innerHTML = `<span>Sua vez de virar as cartas!</span>`;
-            alerta.classList.add("p1");
-        } else {
-            alerta.innerHTML = `<span>Aguarde a jogada do oponente...</span>`;
-            alerta.classList.add("p2");
-        }
-        
-        alerta.classList.add("animacao-alerta");
+        const toast = document.createElement("div");
+        toast.style.background = corHex;
+        toast.style.color = "#fff";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "8px";
+        toast.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
+        toast.style.fontFamily = "'Outfit', sans-serif";
+        toast.style.fontWeight = "600";
+        toast.style.fontSize = "1rem";
+        toast.style.animation = "fadein 0.3s, fadeout 0.3s 2.5s forwards";
+        toast.textContent = mensagem;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 3000);
     }
     // ------------------------------
 
