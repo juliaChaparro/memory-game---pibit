@@ -111,8 +111,51 @@
 
         function concluirLogin() {
             document.getElementById("area-login").classList.add("oculto");
+            
+            // Atualizar Perfil Visual
+            if (window.usuarioLogado) {
+                document.getElementById("perfil-avatar").src = window.usuarioLogado.avatarUrl || 'https://ui-avatars.com/api/?name=' + (window.usuarioLogado.username || 'User');
+                document.getElementById("perfil-nome").textContent = window.usuarioLogado.username || window.usuarioLogado.name;
+                document.getElementById("perfil-tag").textContent = window.usuarioLogado.playerTag ? '#' + window.usuarioLogado.playerTag : '';
+            }
+
             document.getElementById("secao-modos").classList.remove("oculto");
             window.dispatchEvent(new Event('loginConcluido'));
+        }
+
+        async function efetuarLogout() {
+            try {
+                const btn = document.getElementById('btn-logout');
+                if(btn) btn.disabled = true;
+
+                // Destruir sessão no servidor
+                await fetch('/api/auth/logout', { method: 'POST' });
+                
+                // Desabilitar autoselect do Google Identity Services
+                if (window.google && google.accounts && google.accounts.id) {
+                    google.accounts.id.disableAutoSelect();
+                }
+
+                // Disparar evento para desconectar socket e jogo
+                window.dispatchEvent(new Event('logoutConcluido'));
+
+                window.usuarioLogado = null;
+                
+                // Transição de tela
+                document.getElementById("secao-modos").classList.add("oculto");
+                document.getElementById("area-dificuldade").classList.add("oculto");
+                document.getElementById("area-lobby-online").classList.add("oculto");
+                document.getElementById("area-login").classList.remove("oculto");
+
+                // Re-inicializar Google Auth se necessário
+                if (typeof initGoogleAuth === 'function') initGoogleAuth();
+
+            } catch (error) {
+                console.error("Erro ao fazer logout:", error);
+            } finally {
+                const btn = document.getElementById('btn-logout');
+                if(btn) btn.disabled = false;
+            }
         }
 
         function abrirModo(modo) {
@@ -149,6 +192,19 @@
 
             <!-- Área Modos de Jogo (Oculta até logar) -->
             <div id="secao-modos" class="oculto">
+                
+                <!-- Perfil do Jogador -->
+                <div id="perfil-jogador" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img id="perfil-avatar" src="" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                        <div style="text-align: left;">
+                            <p id="perfil-nome" style="margin: 0; font-weight: 700; font-size: 1rem; color: #1f2937;"></p>
+                            <p id="perfil-tag" style="margin: 0; font-size: 0.8rem; color: #6b7280; font-family: monospace;"></p>
+                        </div>
+                    </div>
+                    <button id="btn-logout" class="btn-voltar" style="padding: 6px 12px; font-size: 0.85rem; width: auto;" onclick="efetuarLogout()">Sair</button>
+                </div>
+
                 <p class="subtitulo">Escolha o modo de jogo:</p>
                 <div class="modo-selecao">
                     <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
@@ -373,10 +429,19 @@
         let modoSelecionado = 1;
         let socketClient = null;
 
-        // Tenta conectar o socket apenas APÓS o login ser concluído com sucesso
         socketClient = new SocketClient();
         window.addEventListener('loginConcluido', () => {
-            socketClient.conectar();
+            if (socketClient && socketClient.conectar) {
+                socketClient.conectar();
+            }
+        });
+
+        window.addEventListener('logoutConcluido', () => {
+            if (jogo) jogo.destruir();
+            if (socketClient && socketClient.socket) {
+                socketClient.socket.disconnect();
+                socketClient.socket = null; // força recriar nova conexão num próximo login
+            }
         });
 
         // Botões de Modo
