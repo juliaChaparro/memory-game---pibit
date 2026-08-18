@@ -529,6 +529,14 @@
             document.getElementById("area-jogo").classList.add("oculto");
             document.getElementById("tela-inicial").classList.remove("oculto");
         }
+
+        document.addEventListener('mousemove', (e) => {
+            if (modoSelecionado === 3 && socketClient && socketClient.playerNumber) {
+                console.log(`Jogador ${socketClient.playerNumber} moveu o mouse para X: ${e.clientX}, Y: ${e.clientY}`);
+            } else {
+                console.log(`Mouse movido para X: ${e.clientX}, Y: ${e.clientY}`);
+            }
+        });
     </script>
 
 </body>
