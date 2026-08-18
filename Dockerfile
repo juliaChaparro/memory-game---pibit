@@ -1,28 +1,27 @@
-# Imagem base oficial do Node.js (slim resolve problemas com a engine do Prisma em produá∆o) 
-FROM node:20-slim 
- 
-# Instala o openssl que Ç necess†rio para o Prisma Client no debian slim 
-RUN apt-get update -y && apt-get install -y openssl 
- 
-# Cria e define o diret¢rio de trabalho no container 
-WORKDIR /usr/src/app 
- 
-# Copia os arquivos de dependàncias 
-COPY package*.json ./ 
-COPY prisma ./prisma/ 
- 
-# Instala as dependàncias do projeto 
-RUN npm install 
- 
-# Copia o restante do c¢digo da aplicaá∆o 
-COPY . . 
- 
-# Gera o client do Prisma e compila o TypeScript 
-RUN npx prisma generate 
-RUN npm run build 
- 
-# Exp‰e a porta que o servidor Node/Express utiliza 
-EXPOSE 3000 
- 
-# Comando para iniciar o servidor correto 
-CMD [" "node, dist/server.js]
+# Imagem base oficial do Node.js (slim resolve problemas com a engine do Prisma em produ√ß√£o)
+FROM node:20-slim
+
+# Instala o openssl que √© necess√°rio para o Prisma Client no debian slim
+RUN apt-get update -y && apt-get install -y openssl
+
+# Cria e define o diret√≥rio de trabalho no container
+WORKDIR /usr/src/app
+
+# Copia os arquivos de depend√™ncias
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instala as depend√™ncias do projeto
+RUN npm install
+
+# Copia o restante do c√≥digo da aplica√ß√£o
+COPY . .
+
+# Compila o projeto (O script build do package.json j√° roda prisma generate)
+RUN npm run build
+
+# Exp√µe a porta que o servidor Node/Express utiliza
+EXPOSE 3000
+
+# Comando para iniciar o servidor correto
+CMD ["node", "dist/server.js"]

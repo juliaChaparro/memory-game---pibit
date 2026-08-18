@@ -24,8 +24,6 @@
   },
   "homepage": "https://github.com/juliaChaparro/memory-game---pibit#readme",
   "dependencies": {
-    "@libsql/client": "^0.17.4",
-    "@prisma/adapter-libsql": "^7.9.0",
     "@prisma/client": "^7.9.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
