@@ -542,24 +542,14 @@ h1 {
 .frente img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: cover; /* Mantém preenchido, mas sem zoom excessivo */
     border-radius: 14px;
     transition: transform 0.3s;
-
-    /* ============================================================
-     * ZOOM NA IMAGEM DO ANIMAL
-     * Aumente o valor de scale() para ver o animal maior:
-     *   scale(1.0) → tamanho original (sem zoom)
-     *   scale(1.3) → 30% de zoom (padrão atual)
-     *   scale(1.6) → 60% de zoom (bem próximo)
-     *   scale(2.0) → 100% de zoom (muito próximo)
-     * ============================================================ */
-    transform: scale(1.35);
+    transform: scale(1.0); /* Sem zoom por padrão */
 }
 
 .carta.virada .frente img {
-    transform: scale(1.42);
-    /* leve zoom extra ao virar a carta */
+    transform: scale(1.05); /* Leve efeito ao virar a carta */
 }
 
 /* VERSO – logo */
