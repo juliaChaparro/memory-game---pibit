@@ -542,10 +542,10 @@ h1 {
 .frente img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Exibe a imagem inteira sem cortes laterais */
+    object-fit: contain; /* Garante que não corta a imagem em si */
     border-radius: 14px;
     transition: transform 0.3s;
-    transform: scale(0.9); /* Afasta um pouco das bordas da carta */
+    transform: scale(1.35); /* Aumenta o tamanho para preencher o excesso de borda branca da própria imagem */
 }
 
 .carta.virada .frente img {
