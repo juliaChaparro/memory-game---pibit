@@ -410,13 +410,18 @@
     </div>
 
     <!-- ===== MODAL SET USERNAME ===== -->
-    <div id="modal-username" class="oculto" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; justify-content: center; align-items: center; font-family: 'Outfit';">
-        <div class="modal-card" style="background: white; padding: 30px; border-radius: 12px; text-align: center; max-width: 400px; width: 90%;">
-            <h2>Defina seu Apelido</h2>
-            <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">Escolha um nome único (3 a 16 caracteres, sem espaços).</p>
-            <input type="text" id="input-username" placeholder="Seu apelido..." maxlength="16" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
-            <p id="error-username" style="color: #ef4444; font-size: 0.85rem; margin-bottom: 15px; display: none;"></p>
-            <button id="btn-salvar-username" class="btn-modo ativo" style="width: 100%;">Salvar e Jogar</button>
+    <div id="modal-username" class="oculto" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px;">
+        <div class="tela-inicial-card" style="max-width: 380px;">
+            <div class="titulo-emoji" style="font-size: 2.5rem; margin-bottom: 10px;">🏷️</div>
+            <h1 style="text-align: center; font-size: 1.8rem; margin-bottom: 10px;">Defina seu Apelido</h1>
+            <p style="margin: 0 0 20px 0; font-size: 0.95rem; color: rgba(255,255,255,0.7);">Escolha um nome único (3 a 16 caracteres, sem espaços).</p>
+            
+            <input type="text" id="input-username" placeholder="Digite seu apelido..." maxlength="16" 
+                style="width: 100%; padding: 14px 16px; margin-bottom: 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(74,222,128,0.3); border-radius: 12px; font-size: 1rem; color: #fff; outline: none; font-family: 'Outfit', sans-serif; box-sizing: border-box; transition: all 0.2s;">
+            
+            <p id="error-username" style="color: #f87171; font-size: 0.85rem; margin-bottom: 15px; display: none;"></p>
+            
+            <button id="btn-salvar-username" class="btn-modal-primario" style="width: 100%; margin-top: 10px;">Salvar e Jogar</button>
         </div>
     </div>
 
