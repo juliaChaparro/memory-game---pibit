@@ -534,7 +534,7 @@ h1 {
 
 /* FRENTE – imagem do animal */
 .frente {
-    background: linear-gradient(135deg, #1a3d1e, #0f2612);
+    background: #ffffff; /* Fundo branco para combinar com o fundo das imagens dos animais */
     border: 2px solid rgba(74, 222, 128, 0.3);
     transform: rotateY(180deg);
 }
@@ -542,10 +542,10 @@ h1 {
 .frente img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Mantém preenchido, mas sem zoom excessivo */
+    object-fit: contain; /* Exibe a imagem inteira sem cortes laterais */
     border-radius: 14px;
     transition: transform 0.3s;
-    transform: scale(1.0); /* Sem zoom por padrão */
+    transform: scale(0.9); /* Afasta um pouco das bordas da carta */
 }
 
 .carta.virada .frente img {
