@@ -96,3 +96,5 @@ public/
 *.bak
 *.backup
 node_modules
+
+#docs
