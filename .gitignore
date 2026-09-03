@@ -67,3 +67,28 @@ pnpm-lock.yaml
 .npmrc
 .yarnrc
 .yarnrc.yml
+
+# ----- Test files & tool caches -----
+*.test.js
+*.spec.js
+__snapshots__/
+.eslintcache
+.stylelintcache
+
+# ----- Browser debug files -----
+*.map
+*.css.map
+
+# ----- Deploy folders -----
+out/
+static/
+public/
+
+# ----- Editor temporary files -----
+*~
+.#*
+*.swp
+
+# ----- Backup files -----
+*.bak
+*.backup
