@@ -1,6 +1,42 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# ----- Dependências e builds -----
+node_modules/               # já está aqui
+/dist/                      # arquivos compilados (se usar Vite/Next/etc.)
+/.pnp.js                    # arquivos do Yarn Plug‑n‑Play (se houver)
+npm-debug.log*              # logs de npm
+yarn-debug.log*             # logs de yarn
+yarn-error.log*             # logs de erro do yarn
 
-/generated/prisma
-node_modules
+# ----- Banco de dados / artefatos temporários -----
+dev.db                      # o banco SQLite usado localmente
+/generated/                 # já está incluído (prisma)
+*.sqlite                    # arquivos de SQLite que possam aparecer
+
+# ----- Configurações de ambiente -----
+.env                        # já está aqui
+.env.*                      # variações como .env.development, .env.production
+/*.local                    # arquivos locais de configuração
+
+# ----- IDEs / editores -----
+.vscode/                    # configurações da VS Code
+.idea/                      # configurações do WebStorm/IntelliJ
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ----- Sistema operacional -----
+.DS_Store                   # macOS (não costuma aparecer no Windows, mas não faz mal)
+Thumbs.db                   # Windows thumbnails
+Desktop.ini                 # arquivos de personalização do Explorer
+
+# ----- Logs e relatórios -----
+logs/
+*.log
+*.log.*
+pids/
+*.pid
+
+# ----- Artefatos de teste / cobertura -----
+coverage/
+*.tsbuildinfo
+.mocha.json
+.nyc_output/
