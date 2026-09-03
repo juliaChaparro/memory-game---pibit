@@ -1,3 +1,4 @@
+# Atualiza .gitignore com exclusões de teste e backups
 # ----- Dependências e builds -----
 node_modules/               # já está aqui
 /dist/                      # arquivos compilados (se usar Vite/Next/etc.)
