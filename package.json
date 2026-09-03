@@ -6,7 +6,7 @@
   "scripts": {
     "build": "prisma generate && tsc",
     "start": "prisma db push --accept-data-loss && node dist/server.js",
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch ExpTs/src/server.ts",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "test": "echo \"Error: no test specified\" && exit 1"

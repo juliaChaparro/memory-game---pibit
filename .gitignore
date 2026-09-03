@@ -1,33 +1,33 @@
 # Atualiza .gitignore com exclusões de teste e backups
 # ----- Dependências e builds -----
-node_modules/               # já está aqui
-/dist/                      # arquivos compilados (se usar Vite/Next/etc.)
-/.pnp.js                    # arquivos do Yarn Plug‑n‑Play (se houver)
-npm-debug.log*              # logs de npm
-yarn-debug.log*             # logs de yarn
-yarn-error.log*             # logs de erro do yarn
+node_modules/               
+/dist/                     
+/.pnp.js                  
+npm-debug.log*              
+yarn-debug.log*             
+yarn-error.log*             
 
 # ----- Banco de dados / artefatos temporários -----
-dev.db                      # o banco SQLite usado localmente
-/generated/                 # já está incluído (prisma)
-*.sqlite                    # arquivos de SQLite que possam aparecer
+dev.db                    
+/generated/                 
+*.sqlite                    
 
 # ----- Configurações de ambiente -----
-.env                        # já está aqui
-.env.*                      # variações como .env.development, .env.production
-/*.local                    # arquivos locais de configuração
+.env                        
+.env.*                      
+/*.local                    
 
 # ----- IDEs / editores -----
-.vscode/                    # configurações da VS Code
-.idea/                      # configurações do WebStorm/IntelliJ
+.vscode/                  
+.idea/                      
 *.sublime-project
 *.sublime-workspace
 *.code-workspace
 
 # ----- Sistema operacional -----
-.DS_Store                   # macOS (não costuma aparecer no Windows, mas não faz mal)
-Thumbs.db                   # Windows thumbnails
-Desktop.ini                 # arquivos de personalização do Explorer
+.DS_Store                   
+Thumbs.db                  
+Desktop.ini                 
 
 # ----- Logs e relatórios -----
 logs/

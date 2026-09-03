@@ -33,7 +33,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '../../game')));
 
 app.use('/api/auth', setupAuthRoutes(prisma));
 
