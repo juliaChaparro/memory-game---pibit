@@ -40,3 +40,30 @@ coverage/
 *.tsbuildinfo
 .mocha.json
 .nyc_output/
+.agents/
+.cloude/
+.antigravity/
+.agent/
+
+# ----- System & editor artefacts -----
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Build artefacts
+.dist/
+.build/
+.next/
+.out/
+.cache/
+.tmp/
+
+# Lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Config files
+.npmrc
+.yarnrc
+.yarnrc.yml
