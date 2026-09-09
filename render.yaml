@@ -10,7 +10,7 @@ services:
       - key: DATABASE_URL
         value: file:./dev.db
       - key: FRONTEND_URL
-        value: https://memory-game-pibit-1.onrender.com
+        value: https://memory-game-pibit.vercel.app
 
   # Configuração do banco de dados PostgreSQL gratuito
   - type: postgres
