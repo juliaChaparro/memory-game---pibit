@@ -9,3 +9,14 @@ services:
         value: production
       - key: DATABASE_URL
         value: file:./dev.db
+      - key: FRONTEND_URL
+        value: https://memory-game-pibit-1.onrender.com
+
+  # Configuração do banco de dados PostgreSQL gratuito
+  - type: postgres
+    name: memory-game-db
+    region: oregon
+    plan: free
+    databases:
+      - name: memorygame
+    autoDeploy: true # ← habilita deploy automático com git   

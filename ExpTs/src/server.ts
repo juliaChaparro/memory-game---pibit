@@ -20,8 +20,25 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const app = express();
+
+// Origens permitidas: domínio da Vercel (produção) + localhost (desenvolvimento)
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'http://127.0.0.1:3000',
+].filter((o): o is string => Boolean(o));
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Permite requests sem origem (ex: curl, Postman) e origens na lista
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS bloqueado para origem: ${origin}`));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -33,7 +50,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, '../game')));
+// Frontend agora é servido pela Vercel — express.static removido
 
 app.use('/api/auth', setupAuthRoutes(prisma));
 
@@ -94,7 +111,7 @@ app.get('/api/game-sessions', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: ALLOWED_ORIGINS,
     methods: ['GET', 'POST'],
     credentials: true
   }

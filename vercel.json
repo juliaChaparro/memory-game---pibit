@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "outputDirectory": "game",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

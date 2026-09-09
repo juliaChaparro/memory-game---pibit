@@ -9,12 +9,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+    <script src="js/config.js"></script>
     <script>
         window.usuarioLogado = null;
         window.handleCredentialResponse = async (response) => {
             try {
-                const res = await fetch('/api/auth/google', {
+                const res = await fetch(window.API_URL + '/api/auth/google', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: response.credential })
                 });
@@ -38,7 +40,7 @@
             // Inicialização Dinâmica do Google Auth
             const initGoogleAuth = async () => {
                 try {
-                    const configRes = await fetch('/api/auth/config');
+                    const configRes = await fetch(window.API_URL + '/api/auth/config');
                     const configData = await configRes.json();
                     
                     const checkGoogleAndRender = () => {
@@ -69,7 +71,7 @@
             initGoogleAuth();
 
             try {
-                const res = await fetch('/api/auth/me');
+                const res = await fetch(window.API_URL + '/api/auth/me', { credentials: 'include' });
                 const data = await res.json();
                 if (data.authenticated) {
                     window.usuarioLogado = data.user;
@@ -88,8 +90,9 @@
                 
                 erroEl.style.display = "none";
                 try {
-                    const res = await fetch('/api/auth/set-username', {
+                    const res = await fetch(window.API_URL + '/api/auth/set-username', {
                         method: 'POST',
+                        credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username })
                     });
@@ -129,7 +132,7 @@
                 if(btn) btn.disabled = true;
 
                 // Destruir sessão no servidor
-                await fetch('/api/auth/logout', { method: 'POST' });
+                await fetch(window.API_URL + '/api/auth/logout', { method: 'POST', credentials: 'include' });
                 
                 // Desabilitar autoselect do Google Identity Services
                 if (window.google && google.accounts && google.accounts.id) {

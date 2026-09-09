@@ -93,10 +93,12 @@ authRouter.post('/google', async (req, res) => {
     );
 
     // Salvar token num cookie seguro HttpOnly
+    // SameSite=none + secure=true são obrigatórios para cookies cross-origin
+    // (frontend na Vercel, backend no Render)
     res.cookie('auth_token', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 dias
     });
 
@@ -219,6 +221,7 @@ authRouter.get('/config', (req, res) => {
 });
 
 authRouter.post('/logout', (req, res) => {
-  res.clearCookie('auth_token');
+  // As mesmas flags do set são necessárias para limpar o cookie cross-origin
+  res.clearCookie('auth_token', { secure: true, sameSite: 'none' });
   res.json({ success: true });
 });

@@ -354,8 +354,9 @@ export default class Jogo {
         if (this.modo === 2) gameModeStr = 'LOCAL_DUO';
         if (this.modo === 3) gameModeStr = 'MULTIPLAYER_ONLINE';
 
-        fetch('/api/game-sessions', {
+        fetch(window.API_URL + '/api/game-sessions', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 gameMode: gameModeStr,

@@ -14,7 +14,7 @@ export default class SocketClient {
         if (this.socket) return; // Já conectado
         try {
             if (typeof io !== 'undefined') {
-                this.socket = io({ withCredentials: true });
+                this.socket = io(window.API_URL, { withCredentials: true });
                 this._configurarEventos();
             } else {
                 console.warn('Socket.io não encontrado.');
