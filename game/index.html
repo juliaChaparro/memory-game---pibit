@@ -47,41 +47,46 @@
             concluirLogin();
         }
 
-        window.addEventListener('load', async () => {
-            let temClientId = false;
+        window.temClientIdGoogle = false;
 
-            const initGoogleAuth = async () => {
-                try {
-                    const configRes = await fetch(window.API_URL + '/api/auth/config');
-                    const configData = await configRes.json();
-                    
-                    const checkGoogleAndRender = () => {
-                        if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                            google.accounts.id.initialize({
-                                client_id: configData.clientId,
-                                callback: window.handleCredentialResponse
-                            });
+        window.initGoogleAuth = async () => {
+            const btnDiv = document.getElementById("buttonDiv");
+            try {
+                const configRes = await fetch(window.API_URL + '/api/auth/config');
+                const configData = await configRes.json();
+                
+                const checkGoogleAndRender = () => {
+                    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                        google.accounts.id.initialize({
+                            client_id: configData.clientId,
+                            callback: window.handleCredentialResponse
+                        });
+                        if (btnDiv) {
+                            btnDiv.innerHTML = '';
                             google.accounts.id.renderButton(
-                                document.getElementById("buttonDiv"),
+                                btnDiv,
                                 { theme: "outline", size: "large", shape: "pill", text: "signin_with" }
                             );
-                        } else {
-                            setTimeout(checkGoogleAndRender, 100);
                         }
-                    };
-
-                    if (configData.clientId) {
-                        temClientId = true;
-                        checkGoogleAndRender();
                     } else {
-                        const btnDiv = document.getElementById("buttonDiv");
-                        if (btnDiv) btnDiv.innerHTML = '<p class="aviso-auth-local">Modo Local Ativo (Login Google opcional)</p>';
+                        setTimeout(checkGoogleAndRender, 100);
                     }
-                } catch(e) {
-                    console.error('Erro ao carregar Client ID:', e);
+                };
+
+                if (configData.clientId) {
+                    window.temClientIdGoogle = true;
+                    checkGoogleAndRender();
+                } else {
+                    if (btnDiv) btnDiv.innerHTML = '<p class="aviso-auth-local">Login Google indisponível (defina GOOGLE_CLIENT_ID no .env)</p>';
                 }
-            };
-            await initGoogleAuth();
+            } catch(e) {
+                console.error('Erro ao carregar Client ID:', e);
+                if (btnDiv) btnDiv.innerHTML = '<p class="aviso-auth-local">Servidor de autenticação offline — use o modo Convidado</p>';
+            }
+        };
+
+        window.addEventListener('load', async () => {
+            await window.initGoogleAuth();
 
             let autenticado = false;
             try {
@@ -98,7 +103,7 @@
                 }
             } catch(e) {}
 
-            if (!autenticado && !temClientId) {
+            if (!autenticado && !window.temClientIdGoogle) {
                 entrarComoConvidado();
             }
 
@@ -185,6 +190,7 @@
                 document.getElementById("secao-modos").classList.add("oculto");
                 abrirModo(window.modoSelecionadoParaJogar || 1);
                 document.getElementById("area-login").classList.remove("oculto");
+                if (window.initGoogleAuth) window.initGoogleAuth();
 
             } catch (error) {
                 console.error("Erro ao fazer logout:", error);

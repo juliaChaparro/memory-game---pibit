@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -8,9 +9,7 @@ import { handleGameSockets } from './sockets/game.socket';
 import { setupAuthRoutes } from './routes/auth.route';
 import { logger } from './utils/logger';
 import cookieParser from 'cookie-parser';
-import * as dotenv from 'dotenv';
 import path from 'path';
-dotenv.config();
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -32,7 +31,7 @@ const ALLOWED_ORIGINS = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
       callback(new Error(`CORS bloqueado para origem: ${origin}`));

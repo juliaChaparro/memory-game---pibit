@@ -15,7 +15,6 @@ export const setupAuthRoutes = (prismaClient: PrismaClient) => {
   return authRouter;
 };
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-development-only';
 
 authRouter.post('/google', async (req, res) => {
@@ -27,9 +26,11 @@ authRouter.post('/google', async (req, res) => {
       return res.status(400).json({ error: 'Token missing' });
     }
 
-    const ticket = await client.verifyIdToken({
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const oauthClient = new OAuth2Client(googleClientId);
+    const ticket = await oauthClient.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID as string,
+      audience: googleClientId as string,
     });
 
     const payload = ticket.getPayload();
@@ -93,12 +94,13 @@ authRouter.post('/google', async (req, res) => {
     );
 
     // Salvar token num cookie seguro HttpOnly
-    // SameSite=none + secure=true são obrigatórios para cookies cross-origin
-    // (frontend na Vercel, backend no Render)
+    // Em HTTPS (Vercel + Render), usa secure=true e sameSite='none'.
+    // Em HTTP local (localhost), usa secure=false e sameSite='lax' para o navegador aceitar o cookie.
+    const isHttps = process.env.NODE_ENV === 'production' || req.secure || req.headers['x-forwarded-proto'] === 'https';
     res.cookie('auth_token', sessionToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isHttps,
+      sameSite: isHttps ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 dias
     });
 
@@ -147,10 +149,6 @@ authRouter.post('/set-username', async (req, res) => {
       return res.status(400).json({ error: 'O nome escolhido contém termos não permitidos.' });
     }
 
-    // Since we are using SQLite, we can just do a case-insensitive find using raw if needed,
-    // or just fetch all and check, but Prisma's `equals` might be case sensitive in sqlite.
-    // Let's do a case insensitive comparison manually since there are no users yet, or just rely on exact match.
-    // In SQLite with Prisma, mode: 'insensitive' is not supported on findFirst.
     const allUsers = await prisma.user.findMany({
       where: {
         username: { not: null }
@@ -205,7 +203,6 @@ authRouter.get('/me', async (req, res) => {
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
-    // Refresh user from DB to get the latest username and playerTag
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user) {
       return res.status(401).json({ authenticated: false });
@@ -221,7 +218,7 @@ authRouter.get('/config', (req, res) => {
 });
 
 authRouter.post('/logout', (req, res) => {
-  // As mesmas flags do set são necessárias para limpar o cookie cross-origin
-  res.clearCookie('auth_token', { secure: true, sameSite: 'none' });
+  const isHttps = process.env.NODE_ENV === 'production' || req.secure || req.headers['x-forwarded-proto'] === 'https';
+  res.clearCookie('auth_token', { secure: isHttps, sameSite: isHttps ? 'none' : 'lax' });
   res.json({ success: true });
 });
