@@ -32,7 +32,6 @@ const ALLOWED_ORIGINS = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Permite requests sem origem (ex: curl, Postman) e origens na lista
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
@@ -50,7 +49,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Frontend agora é servido pela Vercel — express.static removido
+// Servir os arquivos estáticos do frontend (pasta /game)
+const gamePath = path.resolve(__dirname, '../../game');
+app.use(express.static(gamePath));
 
 app.use('/api/auth', setupAuthRoutes(prisma));
 
@@ -72,7 +73,6 @@ app.post('/api/game-sessions', async (req, res) => {
 
         const { gameMode, score, hits, misses, totalMoves, timeSpent } = req.body;
         
-        // Conversão explícita para Int, prevenindo falhas do Prisma com strings do Front-end
         const session = await prisma.gameSession.create({
             data: {
                 userId,
@@ -117,30 +117,35 @@ const io = new Server(server, {
   }
 });
 
-// Middleware de Autenticação para WebSockets
+// Middleware de Autenticação para WebSockets (suporta JWT ou modo Convidado)
 io.use((socket, next) => {
   const cookieHeader = socket.request.headers.cookie;
-  if (!cookieHeader) {
-    logger.warn(`[SOCKET_AUTH] Rejeitado ${socket.id}: Sem cookies`);
-    return next(new Error('Authentication error'));
+  const token = cookieHeader
+    ?.split(';')
+    .find(c => c.trim().startsWith('auth_token='))
+    ?.split('=')[1];
+
+  if (token) {
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-development-only';
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      socket.data.user = decoded;
+      logger.info(`[SOCKET_AUTH] Autorizado: ${decoded.email} (${socket.id})`);
+      return next();
+    } catch (err) {
+      logger.warn(`[SOCKET_AUTH] Token inválido para ${socket.id}, usando sessão convidado`);
+    }
   }
 
-  const token = cookieHeader.split(';').find(c => c.trim().startsWith('auth_token='))?.split('=')[1];
-  if (!token) {
-    logger.warn(`[SOCKET_AUTH] Rejeitado ${socket.id}: auth_token ausente`);
-    return next(new Error('Authentication error'));
-  }
-
-  try {
-    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-development-only';
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    socket.data.user = decoded;
-    logger.info(`[SOCKET_AUTH] Autorizado: ${decoded.email} (${socket.id})`);
-    next();
-  } catch (err) {
-    logger.warn(`[SOCKET_AUTH] Rejeitado ${socket.id}: Token inválido`);
-    next(new Error('Authentication error'));
-  }
+  // Fallback para modo Convidado (permite jogar Online localmente sem OAuth)
+  socket.data.user = {
+    userId: `guest_${socket.id}`,
+    email: 'convidado@local',
+    name: 'Convidado',
+    username: 'Convidado'
+  };
+  logger.info(`[SOCKET_AUTH] Convidado conectado: (${socket.id})`);
+  next();
 });
 
 io.on('connection', (socket) => {

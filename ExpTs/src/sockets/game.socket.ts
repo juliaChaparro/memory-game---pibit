@@ -1,12 +1,10 @@
 import { Server, Socket } from 'socket.io';
 import { PrismaClient } from '@prisma/client';
 import type { GameState } from '../utils/gameLogic';
-import { initializeBoard, processFlip } from '../utils/gameLogic';
+import { initializeBoard, processFlip, getSanitizedState } from '../utils/gameLogic';
 
 const activeRooms = new Map<string, GameState>();
 const roomTimers = new Map<string, NodeJS.Timeout>();
-
-import { getSanitizedState } from '../utils/gameLogic';
 
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -35,8 +33,14 @@ function startTurnTimer(roomId: string, io: Server) {
     const st = activeRooms.get(roomId);
     if (!st || st.status !== 'PLAYING') return;
     
+    // Zera a sequência (streak) do jogador que deixou o tempo esgotar
+    const timedOutPlayer = st.players.find(p => p.role === st.currentTurn);
+    if (timedOutPlayer) {
+      timedOutPlayer.streak = 0;
+    }
+
     if (st.flippedCards) {
-      for (let idx of st.flippedCards) {
+      for (const idx of st.flippedCards) {
         const card = st.board[idx];
         if (card) card.isFlipped = false;
       }
@@ -59,9 +63,14 @@ function finalizeGame(roomId: string, state: GameState, io: Server, prisma: Pris
   
   let winner: typeof state.players[0] | undefined;
   if (reason === 'disconnect') {
-    winner = state.players.find(p => p.role === state.currentTurn); // if someone disconnected, we can just say the remaining one wins (handled specifically below)
+    winner = state.players.find(p => p.role === state.currentTurn);
   } else {
-    winner = state.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+    const [p1, p2] = state.players;
+    if (p1 && p2 && p1.score === p2.score) {
+      winner = undefined; // Empate
+    } else {
+      winner = state.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+    }
   }
 
   const payload: any = { players: state.players };
@@ -73,17 +82,19 @@ function finalizeGame(roomId: string, state: GameState, io: Server, prisma: Pris
   const timeSpent = Math.floor((Date.now() - (state.startTime || Date.now())) / 1000);
 
   for (const p of state.players) {
-    prisma.gameSession.create({
-      data: {
-        userId: p.id,
-        gameMode: 'MULTIPLAYER_ONLINE',
-        score: p.score,
-        hits: p.hits,
-        misses: p.misses,
-        totalMoves: p.totalMoves,
-        timeSpent: timeSpent
-      }
-    }).catch(console.error);
+    if (!p.id.startsWith('guest_')) {
+      prisma.gameSession.create({
+        data: {
+          userId: p.id,
+          gameMode: 'MULTIPLAYER_ONLINE',
+          score: p.score,
+          hits: p.hits,
+          misses: p.misses,
+          totalMoves: p.totalMoves,
+          timeSpent: timeSpent
+        }
+      }).catch(console.error);
+    }
   }
   
   activeRooms.delete(roomId);
@@ -101,8 +112,15 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     const state: GameState = {
       board: initializeBoard(pares),
       players: [{ 
-        id: userId, socketId: socket.id, score: 0, matches: 0, role: 'PLAYER_1', 
-        hits: 0, misses: 0, totalMoves: 0, 
+        id: userId,
+        socketId: socket.id,
+        score: 0,
+        matches: 0,
+        streak: 0,
+        role: 'PLAYER_1', 
+        hits: 0,
+        misses: 0,
+        totalMoves: 0, 
         userName: socket.data.user?.username || socket.data.user?.name, 
         avatarUrl: socket.data.user?.avatarUrl 
       }],
@@ -137,11 +155,18 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
 
     socket.join(roomId);
     
-    let player = state.players.find(p => p.id === userId);
+    let player = state.players.find(p => p.socketId === socket.id);
     if (!player) {
       player = { 
-        id: userId, socketId: socket.id, score: 0, matches: 0, role: 'PLAYER_2', 
-        hits: 0, misses: 0, totalMoves: 0, 
+        id: userId === state.players[0]?.id ? `${userId}_2` : userId,
+        socketId: socket.id,
+        score: 0,
+        matches: 0,
+        streak: 0,
+        role: 'PLAYER_2', 
+        hits: 0,
+        misses: 0,
+        totalMoves: 0, 
         userName: socket.data.user?.username || socket.data.user?.name, 
         avatarUrl: socket.data.user?.avatarUrl 
       };
@@ -180,7 +205,7 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
       
       setTimeout(() => {
         if (state.flippedCards) {
-           for (let idx of state.flippedCards) {
+           for (const idx of state.flippedCards) {
              const card = state.board[idx];
              if (card) card.isFlipped = false;
            }
@@ -211,7 +236,7 @@ export function handleGameSockets(io: Server, socket: Socket, prisma: PrismaClie
     for (const [roomId, state] of activeRooms.entries()) {
       const player = state.players.find(p => p.socketId === socket.id);
       if (player) {
-        state.currentTurn = player.role === 'PLAYER_1' ? 'PLAYER_2' : 'PLAYER_1'; // other player wins
+        state.currentTurn = player.role === 'PLAYER_1' ? 'PLAYER_2' : 'PLAYER_1';
         finalizeGame(roomId, state, io, prisma, 'disconnect');
       }
     }

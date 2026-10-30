@@ -36,10 +36,6 @@ export default class Tabuleiro {
 
         // Duplica para formar pares e embaralha novamente
         let nomesImagens = embaralhar([...selecionadas, ...selecionadas]);
-
-        // As vezes o Fisher-Yates ainda deixa pares próximos (sorte), 
-        // mas é o método estatisticamente ideal. 
-        // Podemos dar mais uma embaralhada por segurança
         nomesImagens = embaralhar(nomesImagens);
 
         // Transforma em objetos Carta
@@ -76,14 +72,20 @@ export default class Tabuleiro {
 
             // Escolhe uma logo aleatória para as costas desta carta
             const logoEscolhida = logosFundo[Math.floor(Math.random() * logosFundo.length)];
+            const nomeAnimal = cartaObj.imagem.replace(/\.png$/i, '').replace(/-/g, ' ');
 
             cartaElemento.innerHTML = `
                 <div class="carta-interna">
                     <div class="frente">
-                        <img src="assets/cartas/${cartaObj.imagem}" alt="${cartaObj.imagem.replace('.png', '')}">
+                        <div class="frente-moldura">
+                            <img src="assets/cartas/${cartaObj.imagem}" alt="${nomeAnimal}">
+                        </div>
+                        <span class="nome-animal">${nomeAnimal}</span>
                     </div>
                     <div class="verso">
-                        <img src="${logoEscolhida.src}" alt="${logoEscolhida.alt}">
+                        <div class="verso-medalhao">
+                            <img src="${logoEscolhida.src}" alt="${logoEscolhida.alt}">
+                        </div>
                     </div>
                 </div>
             `;

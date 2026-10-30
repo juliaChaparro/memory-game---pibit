@@ -53,16 +53,17 @@ export default class SocketClient {
     }
 
     criarSala(pares, cols, callback) {
+        if (!this.socket) this.conectar();
         if (!this.socket) return;
         this.socket.emit('create_room', { pares, cols });
         
-        // Vamos escutar temporariamente o room_created para chamar o callback
         this.socket.once('room_created', (data) => {
             if (callback) callback(data.roomId);
         });
     }
 
     entrarSala(roomId) {
+        if (!this.socket) this.conectar();
         if (!this.socket) return;
         this.roomId = roomId;
         this.socket.emit('join_room_code', { roomId });

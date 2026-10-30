@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Jogo da Memória Amazônico</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Fredoka:wght@500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
     <script src="js/config.js"></script>
@@ -36,8 +36,20 @@
             }
         };
 
+        function entrarComoConvidado() {
+            window.usuarioLogado = {
+                id: 'guest',
+                name: 'Jogador Convidado',
+                username: 'Convidado',
+                playerTag: '0001',
+                avatarUrl: ''
+            };
+            concluirLogin();
+        }
+
         window.addEventListener('load', async () => {
-            // Inicialização Dinâmica do Google Auth
+            let temClientId = false;
+
             const initGoogleAuth = async () => {
                 try {
                     const configRes = await fetch(window.API_URL + '/api/auth/config');
@@ -59,21 +71,24 @@
                     };
 
                     if (configData.clientId) {
+                        temClientId = true;
                         checkGoogleAndRender();
                     } else {
                         const btnDiv = document.getElementById("buttonDiv");
-                        if(btnDiv) btnDiv.innerHTML = '<p style="color: #ef4444; font-weight: bold; text-align: center;">Erro Crítico:<br>A variável GOOGLE_CLIENT_ID não foi configurada no painel do Render (Environment Variables).</p>';
+                        if (btnDiv) btnDiv.innerHTML = '<p class="aviso-auth-local">Modo Local Ativo (Login Google opcional)</p>';
                     }
                 } catch(e) {
                     console.error('Erro ao carregar Client ID:', e);
                 }
             };
-            initGoogleAuth();
+            await initGoogleAuth();
 
+            let autenticado = false;
             try {
                 const res = await fetch(window.API_URL + '/api/auth/me', { credentials: 'include' });
                 const data = await res.json();
                 if (data.authenticated) {
+                    autenticado = true;
                     window.usuarioLogado = data.user;
                     if (!window.usuarioLogado.username) {
                         document.getElementById("modal-username").classList.remove("oculto");
@@ -82,6 +97,14 @@
                     }
                 }
             } catch(e) {}
+
+            if (!autenticado && !temClientId) {
+                entrarComoConvidado();
+            }
+
+            document.getElementById("btn-convidado")?.addEventListener("click", () => {
+                entrarComoConvidado();
+            });
             
             document.getElementById("btn-salvar-username").addEventListener("click", async () => {
                 const username = document.getElementById("input-username").value.trim();
@@ -115,14 +138,32 @@
         function concluirLogin() {
             document.getElementById("area-login").classList.add("oculto");
             
-            // Atualizar Perfil Visual
             if (window.usuarioLogado) {
-                document.getElementById("perfil-avatar").src = window.usuarioLogado.avatarUrl || 'https://ui-avatars.com/api/?name=' + (window.usuarioLogado.username || 'User');
-                document.getElementById("perfil-nome").textContent = window.usuarioLogado.username || window.usuarioLogado.name;
-                document.getElementById("perfil-tag").textContent = window.usuarioLogado.playerTag ? '#' + window.usuarioLogado.playerTag : '';
+                const nome = window.usuarioLogado.username || window.usuarioLogado.name || 'Convidado';
+                const iniciais = nome.substring(0, 2).toUpperCase();
+                const iniciaisEl = document.getElementById("perfil-iniciais");
+                const avatarImg = document.getElementById("perfil-avatar");
+
+                if (iniciaisEl) iniciaisEl.textContent = iniciais;
+
+                const temFotoReal = window.usuarioLogado.avatarUrl && !window.usuarioLogado.avatarUrl.includes('ui-avatars.com');
+                if (temFotoReal) {
+                    avatarImg.src = window.usuarioLogado.avatarUrl;
+                    avatarImg.classList.remove("oculto");
+                    if (iniciaisEl) iniciaisEl.classList.add("oculto");
+                } else {
+                    avatarImg.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome);
+                    avatarImg.classList.add("oculto");
+                    if (iniciaisEl) iniciaisEl.classList.remove("oculto");
+                }
+
+                document.getElementById("perfil-nome").textContent = nome;
+                document.getElementById("perfil-tag").textContent = window.usuarioLogado.playerTag ? '#' + window.usuarioLogado.playerTag : '#0001';
             }
 
             document.getElementById("secao-modos").classList.remove("oculto");
+            const modoAtual = window.modoSelecionadoParaJogar || 1;
+            abrirModo(modoAtual);
             window.dispatchEvent(new Event('loginConcluido'));
         }
 
@@ -131,27 +172,19 @@
                 const btn = document.getElementById('btn-logout');
                 if(btn) btn.disabled = true;
 
-                // Destruir sessão no servidor
-                await fetch(window.API_URL + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+                await fetch(window.API_URL + '/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
                 
-                // Desabilitar autoselect do Google Identity Services
                 if (window.google && google.accounts && google.accounts.id) {
                     google.accounts.id.disableAutoSelect();
                 }
 
-                // Disparar evento para desconectar socket e jogo
                 window.dispatchEvent(new Event('logoutConcluido'));
 
                 window.usuarioLogado = null;
                 
-                // Transição de tela
                 document.getElementById("secao-modos").classList.add("oculto");
-                document.getElementById("area-dificuldade").classList.add("oculto");
-                document.getElementById("area-lobby-online").classList.add("oculto");
+                abrirModo(window.modoSelecionadoParaJogar || 1);
                 document.getElementById("area-login").classList.remove("oculto");
-
-                // Re-inicializar Google Auth se necessário
-                if (typeof initGoogleAuth === 'function') initGoogleAuth();
 
             } catch (error) {
                 console.error("Erro ao fazer logout:", error);
@@ -177,93 +210,348 @@
 
 <body>
 
+    <!-- Definições SVG Reutilizáveis -->
+    <svg width="0" height="0" style="position: absolute; pointer-events: none;" aria-hidden="true">
+        <defs>
+            <linearGradient id="grad-estrela" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffe863" />
+                <stop offset="100%" stop-color="#f2b729" />
+            </linearGradient>
+            <!-- Estrela Flat Ilustrada -->
+            <g id="icone-estrela">
+                <path d="M12 2.2 L15 8 L21.4 8.9 L16.7 13.4 L17.9 19.7 L12 16.7 L6.1 19.7 L7.3 13.4 L2.6 8.9 L9 8 Z"
+                      fill="url(#grad-estrela)" stroke="#2c352d" stroke-width="1.9" stroke-linejoin="round" />
+            </g>
+            <!-- Selo Checkmark (✓) -->
+            <g id="selo-check">
+                <circle cx="14" cy="14" r="12.5" fill="#6b9a69" stroke="#263829" stroke-width="2.2"/>
+                <path d="M8.5 14.2 L12.2 17.8 L19.8 10.2" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+            <!-- Par de Cartinhas com Folha (Esquerda) -->
+            <g id="cartinhas-esq">
+                <g transform="rotate(-15 14 18)">
+                    <rect x="2" y="4" width="16" height="22" rx="2.5" fill="#d8b27c" stroke="#2c352d" stroke-width="1.6"/>
+                    <rect x="4" y="6" width="12" height="18" rx="1.2" fill="#cba168" stroke="#7d5b32" stroke-width="0.9"/>
+                </g>
+                <g transform="rotate(-4 18 18)">
+                    <rect x="8" y="3" width="17" height="23" rx="2.5" fill="#e6c694" stroke="#2c352d" stroke-width="1.6"/>
+                    <rect x="10" y="5" width="13" height="19" rx="1.2" fill="#d9b47e" stroke="#8a6538" stroke-width="0.9"/>
+                    <path d="M16.5 9.5 C19 9.5 20 12 18.2 15.5 C16.5 18 14 18 14 15.5 C14 12 15 9.5 16.5 9.5 Z" fill="#5e8f5c" stroke="#2c4230" stroke-width="1.1"/>
+                    <path d="M16.4 11 L15.8 17.2" stroke="#2c4230" stroke-width="1" stroke-linecap="round"/>
+                </g>
+            </g>
+            <!-- Par de Cartinhas com Folha (Direita) -->
+            <g id="cartinhas-dir">
+                <g transform="rotate(15 18 18)">
+                    <rect x="12" y="4" width="16" height="22" rx="2.5" fill="#d8b27c" stroke="#2c352d" stroke-width="1.6"/>
+                    <rect x="14" y="6" width="12" height="18" rx="1.2" fill="#cba168" stroke="#7d5b32" stroke-width="0.9"/>
+                </g>
+                <g transform="rotate(4 14 18)">
+                    <rect x="5" y="3" width="17" height="23" rx="2.5" fill="#e6c694" stroke="#2c352d" stroke-width="1.6"/>
+                    <rect x="7" y="5" width="13" height="19" rx="1.2" fill="#d9b47e" stroke="#8a6538" stroke-width="0.9"/>
+                    <path d="M13.5 9.5 C16 9.5 17 12 15.2 15.5 C13.5 18 11 18 11 15.5 C11 12 12 9.5 13.5 9.5 Z" fill="#5e8f5c" stroke="#2c4230" stroke-width="1.1"/>
+                    <path d="M13.4 11 L12.8 17.2" stroke="#2c4230" stroke-width="1" stroke-linecap="round"/>
+                </g>
+            </g>
+        </defs>
+    </svg>
+
     <!-- ===== TELA INICIAL ===== -->
     <div id="tela-inicial">
-        <div class="tela-inicial-card">
+
+        <!-- CONTAINER CENTRAL DO MENU -->
+        <div class="tela-inicial-card menu-editorial">
+
+            <!-- CENÁRIO BOTÂNICO INTERNO DO CARD (Árvores e Folhagens em Tons de Verde-Sálvia) -->
+            <div class="cenario-botanico" aria-hidden="true">
+            <!-- Árvore e Copas da Esquerda -->
+            <svg class="arvore-esq" viewBox="0 0 260 900" preserveAspectRatio="xMinYMid slice">
+                <!-- Copas suaves ao fundo -->
+                <path d="M-20 0 L240 0 C250 35 215 68 170 68 C145 92 95 95 65 78 C30 90 -10 75 -20 45 Z" fill="#8ea490"/>
+                <path d="M-20 45 C30 35 95 45 125 75 C155 82 175 110 145 132 C110 152 45 148 -20 130 Z" fill="#a8b9a8"/>
+                <ellipse cx="145" cy="180" rx="52" ry="26" fill="#9ab09c"/>
+                <path d="M105 182 C105 162 135 154 152 165 C172 156 196 170 190 188 C184 202 110 202 105 182 Z" fill="#829984"/>
+                <!-- Troncos esguios da esquerda -->
+                <path d="M44 125 C46 310 42 540 38 820 L50 820 C52 540 54 310 54 125 Z" fill="#465c49"/>
+                <path d="M48 210 L96 184 L99 189 L49 220 Z" fill="#465c49"/>
+                <path d="M22 440 C24 580 22 720 18 850 L31 850 C33 720 34 580 32 440 Z" fill="#364a39"/>
+                <path d="M26 485 L-10 440 L-4 435 L29 475 Z" fill="#364a39"/>
+                <!-- Copa intermediária esquerda -->
+                <path d="M-30 380 C-10 345 45 340 75 365 C115 365 140 395 125 422 C105 445 20 448 -30 430 Z" fill="#7c947e"/>
+                <path d="M-25 410 C5 385 62 385 88 408 C115 412 122 438 95 452 C60 465 -5 460 -25 445 Z" fill="#48604b"/>
+                <!-- Folhagens tropicais no canto inferior esquerdo -->
+                <g transform="translate(-10, 690)">
+                    <path d="M25 210 C15 145 35 75 65 35 C78 80 72 150 52 210 Z" fill="#9eb3a0"/>
+                    <path d="M40 210 C55 150 95 95 140 70 C135 120 105 175 68 210 Z" fill="#829c85"/>
+                    <path d="M0 155 C35 145 75 165 95 205 L0 210 Z" fill="#638067"/>
+                    <!-- Samambaia / Folha recortada -->
+                    <path d="M10 210 C22 160 48 115 82 82" fill="none" stroke="#425945" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M25 170 C10 158 5 145 18 142 C30 140 34 155 25 170 Z" fill="#557359"/>
+                    <path d="M40 145 C25 132 22 118 35 116 C46 115 48 130 40 145 Z" fill="#557359"/>
+                    <path d="M58 120 C45 108 44 95 56 94 C66 94 66 108 58 120 Z" fill="#557359"/>
+                    <path d="M32 175 C48 168 62 174 56 185 C48 192 36 186 32 175 Z" fill="#557359"/>
+                    <path d="M48 150 C65 142 78 148 72 160 C64 166 52 160 48 150 Z" fill="#557359"/>
+                    <path d="M65 125 C80 118 92 124 86 135 C78 140 68 135 65 125 Z" fill="#557359"/>
+                    <path d="M55 215 C85 180 130 165 168 175 C140 205 100 218 55 215 Z" fill="#425945"/>
+                </g>
+            </svg>
+
+            <!-- Árvore e Copas da Direita -->
+            <svg class="arvore-dir" viewBox="0 0 260 900" preserveAspectRatio="xMaxYMid slice">
+                <!-- Copas superiores direitas -->
+                <path d="M40 0 L280 0 L280 110 C230 115 175 95 155 65 C110 68 60 42 40 0 Z" fill="#465e49"/>
+                <path d="M120 75 C145 50 205 48 245 70 C270 85 265 125 225 135 C180 145 115 135 105 105 C100 90 108 80 120 75 Z" fill="#637d66"/>
+                <path d="M85 190 C95 168 135 162 160 175 C188 165 225 178 220 202 C215 222 105 222 85 198 Z" fill="#7c947e"/>
+                <!-- Tronco principal direito -->
+                <path d="M225 95 C215 280 222 520 232 820 L248 820 C240 520 234 280 242 95 Z" fill="#364a39"/>
+                <path d="M226 195 L168 145 L174 140 L228 182 Z" fill="#364a39"/>
+                <path d="M222 440 L175 375 L182 370 L225 425 Z" fill="#364a39"/>
+                <!-- Copa frondosa intermediária direita -->
+                <path d="M145 315 C160 282 215 275 250 298 C275 315 275 375 235 390 C185 402 120 390 115 355 C112 335 128 320 145 315 Z" fill="#364a39"/>
+                <path d="M105 360 C125 340 175 342 200 365 C215 380 195 402 155 400 C115 398 92 378 105 360 Z" fill="#4e6952"/>
+                <!-- Folhagens tropicais no canto inferior direito -->
+                <g transform="translate(55, 680)">
+                    <path d="M165 220 C175 150 155 80 120 35 C105 85 115 155 135 220 Z" fill="#8ea690"/>
+                    <path d="M145 220 C125 155 85 100 40 75 C48 125 80 180 118 220 Z" fill="#6b876e"/>
+                    <!-- Folha escura alta -->
+                    <path d="M150 220 C148 140 168 65 198 20 C212 75 202 155 178 220 Z" fill="#364a39"/>
+                    <!-- Samambaia direita -->
+                    <path d="M145 220 C125 165 95 120 55 88" fill="none" stroke="#364a39" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M125 178 C140 165 145 150 132 148 C120 146 116 162 125 178 Z" fill="#465e49"/>
+                    <path d="M108 152 C122 138 125 124 112 122 C100 120 98 136 108 152 Z" fill="#465e49"/>
+                    <path d="M88 126 C102 114 104 100 92 98 C80 98 80 112 88 126 Z" fill="#465e49"/>
+                    <path d="M115 185 C98 178 85 184 92 195 C100 202 112 196 115 185 Z" fill="#465e49"/>
+                    <path d="M98 158 C80 150 68 156 75 168 C82 174 94 168 98 158 Z" fill="#465e49"/>
+                    <path d="M78 132 C62 124 50 130 56 142 C64 148 74 142 78 132 Z" fill="#465e49"/>
+                </g>
+            </svg>
+            </div>
+
+            <!-- TÍTULO PRINCIPAL -->
             <div class="titulo-wrapper">
-                <span class="titulo-emoji">🌿</span>
                 <h1>Jogo da Memória<br><span class="titulo-destaque">Amazônico</span></h1>
             </div>
-            <!-- Área de Login (Aparece primeiro) -->
+
+            <!-- ÁREA DE LOGIN (Quando deslogado) -->
             <div id="area-login" class="auth-body">
-                <p class="auth-label">Autenticação</p>
-                <p class="auth-instruction">Para jogar, você precisa fazer login.</p>
-                <div class="auth-action">
-                    <div id="buttonDiv"></div> 
+                <div class="card-perfil-branco card-login-branco">
+                    <p class="auth-label">Autenticação</p>
+                    <p class="auth-instruction">Entre com sua conta ou jogue como convidado:</p>
+                    <div class="auth-action">
+                        <div id="buttonDiv"></div>
+                        <button id="btn-convidado" type="button" class="btn-sair-salvia btn-convidado-salvia">
+                            Jogar como Convidado
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Área Modos de Jogo (Oculta até logar) -->
+            <!-- SEÇÃO LOGADA: PERFIL + MODOS -->
             <div id="secao-modos" class="oculto">
                 
-                <!-- Perfil do Jogador -->
-                <div id="perfil-jogador" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img id="perfil-avatar" src="" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                        <div style="text-align: left;">
-                            <p id="perfil-nome" style="margin: 0; font-weight: 700; font-size: 1rem; color: #1f2937;"></p>
-                            <p id="perfil-tag" style="margin: 0; font-size: 0.8rem; color: #6b7280; font-family: monospace;"></p>
+                <!-- Card Branco de Perfil -->
+                <div id="perfil-jogador" class="card-perfil-branco">
+                    <div class="perfil-info-esq">
+                        <div class="circulo-iniciais">
+                            <span id="perfil-iniciais">CO</span>
+                            <img id="perfil-avatar" class="oculto" src="" alt="Avatar">
+                        </div>
+                        <div class="perfil-textos">
+                            <p id="perfil-nome">Convidado</p>
+                            <p id="perfil-tag">#0001</p>
                         </div>
                     </div>
-                    <button id="btn-logout" class="btn-voltar" style="padding: 6px 12px; font-size: 0.85rem; width: auto;" onclick="efetuarLogout()">Sair</button>
+                    <button id="btn-logout" class="btn-sair-salvia" onclick="efetuarLogout()">Sair</button>
                 </div>
 
+                <!-- Escolha o modo de jogo -->
                 <p class="subtitulo">Escolha o modo de jogo:</p>
                 <div class="modo-selecao">
-                    <button id="btn-single" class="btn-modo ativo" data-modo="1">👤 1 Jogador (Solo)</button>
-                    <button id="btn-multi" class="btn-modo" data-modo="2">👥 2 Jogadores (Local)</button>
-                    <button id="btn-online" class="btn-modo" data-modo="3">🌐 Online</button>
+                    <!-- 1 Jogador (Solo) -->
+                    <button id="btn-single" class="btn-modo ativo" data-modo="1">
+                        <span class="modo-topo-icone">
+                            <svg viewBox="0 0 44 44" width="32" height="32" aria-hidden="true">
+                                <path d="M12 18 C11 9 20 6 26 8 C32 9 34 15 32 20 Z" fill="#6b3e23" stroke="#263829" stroke-width="2.2" stroke-linejoin="round"/>
+                                <circle cx="13" cy="21" r="2.8" fill="#e8b48a" stroke="#263829" stroke-width="1.8"/>
+                                <circle cx="31" cy="21" r="2.8" fill="#e8b48a" stroke="#263829" stroke-width="1.8"/>
+                                <path d="M10 39 C10 31 15 28 22 28 C29 28 34 31 34 39 Z" fill="#eab64d" stroke="#263829" stroke-width="2.2" stroke-linejoin="round"/>
+                                <rect x="14" y="13" width="16" height="16" rx="7.5" fill="#f2c299" stroke="#263829" stroke-width="2.2"/>
+                                <path d="M14 16 C17 11 26 11 30 16 C28 11 16 11 14 16 Z" fill="#6b3e23" stroke="#263829" stroke-width="1.8"/>
+                                <circle cx="19" cy="20.5" r="1.5" fill="#263829"/>
+                                <circle cx="25" cy="20.5" r="1.5" fill="#263829"/>
+                                <path d="M19.5 24.5 Q22 26.5 24.5 24.5" fill="none" stroke="#263829" stroke-width="1.6" stroke-linecap="round"/>
+                            </svg>
+                            <span class="modo-numero">1</span>
+                        </span>
+                        <span class="modo-titulo">Jogador</span>
+                        <span class="modo-sub">(Solo)</span>
+                        <svg class="selo-ativo" viewBox="0 0 28 28" width="26" height="26"><use href="#selo-check"/></svg>
+                    </button>
+
+                    <!-- 2 Jogadores (Local) -->
+                    <button id="btn-multi" class="btn-modo" data-modo="2">
+                        <span class="modo-topo-icone">
+                            <svg viewBox="0 0 64 42" width="44" height="30" aria-hidden="true">
+                                <!-- Menina -->
+                                <path d="M8 25 C6 13 12 7 20 8 C28 9 30 16 28 25 Z" fill="#6b3e23" stroke="#263829" stroke-width="2"/>
+                                <path d="M7 38 C7 31 12 28 18 28 C24 28 29 31 29 38 Z" fill="#5b8fb9" stroke="#263829" stroke-width="2"/>
+                                <rect x="11" y="13" width="14" height="14" rx="6.5" fill="#f2c299" stroke="#263829" stroke-width="2"/>
+                                <circle cx="15.5" cy="19.5" r="1.3" fill="#263829"/>
+                                <circle cx="20.5" cy="19.5" r="1.3" fill="#263829"/>
+                                <path d="M16 23 Q18 24.8 20 23" fill="none" stroke="#263829" stroke-width="1.5" stroke-linecap="round"/>
+                                <!-- Menino -->
+                                <path d="M34 38 C34 31 39 28 45 28 C51 28 56 31 56 38 Z" fill="#d96b52" stroke="#263829" stroke-width="2"/>
+                                <rect x="38" y="13" width="14" height="14" rx="6.5" fill="#e6b187" stroke="#263829" stroke-width="2"/>
+                                <path d="M37 16 C38 9 45 8 51 11 C53 13 53 16 52 17 C48 14 41 14 37 16 Z" fill="#52301c" stroke="#263829" stroke-width="2"/>
+                                <circle cx="42.5" cy="19.5" r="1.3" fill="#263829"/>
+                                <circle cx="47.5" cy="19.5" r="1.3" fill="#263829"/>
+                                <path d="M43 23 Q45 24.8 47 23" fill="none" stroke="#263829" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <span class="modo-numero">2</span>
+                        </span>
+                        <span class="modo-titulo">Jogadores</span>
+                        <span class="modo-sub">(Local)</span>
+                        <svg class="selo-ativo" viewBox="0 0 28 28" width="26" height="26"><use href="#selo-check"/></svg>
+                    </button>
+
+                    <!-- Online -->
+                    <button id="btn-online" class="btn-modo btn-modo-online" data-modo="3">
+                        <span class="modo-topo-icone">
+                            <svg viewBox="0 0 40 40" width="30" height="30" aria-hidden="true">
+                                <circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="2.2"/>
+                                <ellipse cx="20" cy="20" rx="7" ry="14" fill="none" stroke="currentColor" stroke-width="2"/>
+                                <line x1="6" y1="20" x2="34" y2="20" stroke="currentColor" stroke-width="2"/>
+                                <path d="M8.5 13 Q20 15.5 31.5 13" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                                <path d="M8.5 27 Q20 24.5 31.5 27" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                        </span>
+                        <span class="modo-titulo">Online</span>
+                        <svg class="selo-ativo" viewBox="0 0 28 28" width="26" height="26"><use href="#selo-check"/></svg>
+                    </button>
                 </div>
             </div>
 
-            <!-- Área Dificuldade (Local / Single) -->
+            <!-- ÁREA DIFICULDADE (Local / Single) -->
             <div id="area-dificuldade">
                 <p class="subtitulo">Escolha a dificuldade:</p>
                 <div class="botoes-grid">
-                    <button id="btn-2x2" class="btn-dificuldade" data-cols="2" data-pares="2">
-                        <span class="btn-nivel">⭐⭐</span>
-                        <span class="btn-tamanho">2×2</span>
+                    <!-- 2x2: Pedra Cinza Suave -->
+                    <button id="btn-2x2" class="btn-dificuldade btn-pedra" data-cols="2" data-pares="2">
+                        <span class="btn-nivel">
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                        </span>
+                        <span class="btn-tamanho-linha">
+                            <span class="btn-tamanho">2×2</span>
+                            <svg class="mini-carta-2" viewBox="0 0 24 28" width="20" height="23" aria-hidden="true">
+                                <g transform="rotate(10 12 14)">
+                                    <rect x="3" y="2" width="17" height="22" rx="2.5" fill="#d9b382" stroke="#2c352d" stroke-width="1.8"/>
+                                    <rect x="5.2" y="4.2" width="12.6" height="17.6" rx="1.2" fill="#cca26e" stroke="#7d5a32" stroke-width="0.9"/>
+                                    <text x="11.5" y="17" text-anchor="middle" font-family="Baloo 2, Outfit, sans-serif" font-weight="800" font-size="10.5" fill="#2c352d">2</text>
+                                </g>
+                            </svg>
+                        </span>
                         <span class="btn-info">4 cartas</span>
                     </button>
-                    <button id="btn-4x4" class="btn-dificuldade" data-cols="4" data-pares="8">
-                        <span class="btn-nivel">⭐⭐⭐⭐</span>
-                        <span class="btn-tamanho">4×4</span>
+
+                    <!-- 4x4: Quadro Verde-Sálvia com Moldura de Galhos e Cipós + Checkmark -->
+                    <button id="btn-4x4" class="btn-dificuldade btn-cipos" data-cols="4" data-pares="8">
+                        <!-- Moldura ilustrada de galhos de madeira e cipós -->
+                        <svg class="moldura-galhos-svg" viewBox="0 0 130 130" preserveAspectRatio="none" aria-hidden="true">
+                            <!-- Galhos de madeira nas 4 bordas -->
+                            <path d="M12 7 Q65 3 118 7" fill="none" stroke="#6e4726" stroke-width="7" stroke-linecap="round"/>
+                            <path d="M12 7 Q65 3 118 7" fill="none" stroke="#2c352d" stroke-width="2"/>
+                            <path d="M12 123 Q65 127 118 123" fill="none" stroke="#6e4726" stroke-width="7" stroke-linecap="round"/>
+                            <path d="M7 12 Q3 65 7 118" fill="none" stroke="#6e4726" stroke-width="7" stroke-linecap="round"/>
+                            <path d="M123 12 Q127 65 123 118" fill="none" stroke="#6e4726" stroke-width="7" stroke-linecap="round"/>
+                            <!-- Contorno dos galhos -->
+                            <rect x="5" y="5" width="120" height="120" rx="18" fill="none" stroke="#2c352d" stroke-width="2.4"/>
+                            <rect x="9" y="9" width="112" height="112" rx="14" fill="none" stroke="#3b2310" stroke-width="1.8"/>
+                            <!-- Cipós verdes entrelaçados -->
+                            <path d="M22 5 C38 12 58 2 78 8 C92 12 106 4 116 9" fill="none" stroke="#4f7d4d" stroke-width="2.6" stroke-linecap="round"/>
+                            <path d="M6 28 C12 48 3 72 9 96" fill="none" stroke="#4f7d4d" stroke-width="2.6" stroke-linecap="round"/>
+                            <path d="M20 124 C45 118 75 128 102 121" fill="none" stroke="#4f7d4d" stroke-width="2.6" stroke-linecap="round"/>
+                            <!-- Folhinhas discretas nos cantos da moldura -->
+                            <path d="M4 32 C-2 24 0 16 7 20 C11 23 9 29 4 32 Z" fill="#6b9a69" stroke="#2c352d" stroke-width="1.6"/>
+                            <path d="M84 4 C90 -2 98 0 94 6 C91 10 86 8 84 4 Z" fill="#6b9a69" stroke="#2c352d" stroke-width="1.6"/>
+                            <path d="M14 122 C8 128 12 132 18 127 C22 124 18 120 14 122 Z" fill="#6b9a69" stroke="#2c352d" stroke-width="1.6"/>
+                        </svg>
+                        <span class="btn-nivel">
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                        </span>
+                        <span class="btn-tamanho-linha">
+                            <svg class="mini-cartas-par" viewBox="0 0 30 30" width="24" height="24"><use href="#cartinhas-esq"/></svg>
+                            <span class="btn-tamanho">4×4</span>
+                            <svg class="mini-cartas-par" viewBox="0 0 30 30" width="24" height="24"><use href="#cartinhas-dir"/></svg>
+                        </span>
                         <span class="btn-info">16 cartas</span>
+                        <svg class="selo-dificuldade" viewBox="0 0 28 28" width="26" height="26"><use href="#selo-check"/></svg>
                     </button>
-                    <button id="btn-6x6" class="btn-dificuldade" data-cols="6" data-pares="18">
-                        <span class="btn-nivel">⭐⭐⭐⭐⭐</span>
-                        <span class="btn-tamanho">6×6</span>
+
+                    <!-- 6x6: Medalhão Ocre de Madeira Clara -->
+                    <button id="btn-6x6" class="btn-dificuldade btn-tronco" data-cols="6" data-pares="18">
+                        <span class="btn-nivel">
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                            <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                        </span>
+                        <span class="btn-tamanho-linha">
+                            <svg class="mini-cartas-par" viewBox="0 0 30 30" width="23" height="23"><use href="#cartinhas-esq"/></svg>
+                            <span class="btn-tamanho">6×6</span>
+                            <svg class="mini-cartas-par" viewBox="0 0 30 30" width="23" height="23"><use href="#cartinhas-dir"/></svg>
+                        </span>
                         <span class="btn-info">36 cartas</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Área Lobby Online -->
+            <!-- ÁREA LOBBY ONLINE -->
             <div id="area-lobby-online" class="oculto">
-                <p class="subtitulo">Multijogador Online</p>
+                <p class="subtitulo">Multijogador Online — Criar Sala:</p>
                 <div class="lobby-acoes">
                     <div class="lobby-criar">
-                        <p>Criar uma nova sala:</p>
                         <div class="botoes-grid">
-                            <button class="btn-dificuldade btn-criar-sala" data-cols="2" data-pares="2">
-                                <span class="btn-nivel">⭐⭐</span>
+                            <button class="btn-dificuldade btn-pedra btn-criar-sala" data-cols="2" data-pares="2">
+                                <span class="btn-nivel">
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                </span>
                                 <span class="btn-tamanho">2×2</span>
+                                <span class="btn-info">4 cartas</span>
                             </button>
-                            <button class="btn-dificuldade btn-criar-sala" data-cols="4" data-pares="8">
-                                <span class="btn-nivel">⭐⭐⭐⭐</span>
+                            <button class="btn-dificuldade btn-cipos btn-criar-sala" data-cols="4" data-pares="8">
+                                <span class="btn-nivel">
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                </span>
                                 <span class="btn-tamanho">4×4</span>
+                                <span class="btn-info">16 cartas</span>
                             </button>
-                            <button class="btn-dificuldade btn-criar-sala" data-cols="6" data-pares="18">
-                                <span class="btn-nivel">⭐⭐⭐⭐⭐</span>
+                            <button class="btn-dificuldade btn-tronco btn-criar-sala" data-cols="6" data-pares="18">
+                                <span class="btn-nivel">
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                    <svg class="estrela-svg" viewBox="0 0 24 22"><use href="#icone-estrela"/></svg>
+                                </span>
                                 <span class="btn-tamanho">6×6</span>
+                                <span class="btn-info">36 cartas</span>
                             </button>
                         </div>
                     </div>
-                    <div class="lobby-entrar" style="margin-top: 20px;">
-                        <p>Ou entrar com código:</p>
-                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                            <input type="text" id="input-codigo-sala" placeholder="EX: A1B2C3" maxlength="6" style="padding: 10px; border-radius: 8px; border: 2px solid #ddd; font-family: 'Outfit'; font-weight: 600; text-transform: uppercase; width: 120px; text-align: center;">
-                            <button id="btn-entrar-sala" class="btn-dificuldade" style="width: auto; padding: 10px 20px;">Entrar</button>
+                    <div class="lobby-entrar">
+                        <p class="subtitulo-menor">Ou entrar com código da sala:</p>
+                        <div class="lobby-codigo-row">
+                            <input type="text" id="input-codigo-sala" placeholder="EX: A1B2C3" maxlength="6">
+                            <button id="btn-entrar-sala" class="btn-sair-salvia">Entrar</button>
                         </div>
                     </div>
                 </div>
@@ -274,12 +562,14 @@
 
     <!-- TELA AGUARDANDO OPONENTE -->
     <div id="tela-aguardando" class="oculto">
-        <div class="tela-inicial-card" style="text-align: center;">
-            <h2>Aguardando oponente...</h2>
-            <p>Envie o código abaixo para o outro jogador:</p>
-            <h1 class="codigo-destaque" id="codigo-sala-display" style="font-size: 3rem; letter-spacing: 5px; color: #10b981; margin: 20px 0;">---</h1>
-            <p>Carregando...</p>
-            <button id="btn-cancelar-sala" class="btn-voltar" style="margin-top: 20px;">Cancelar</button>
+        <div class="tela-inicial-card menu-editorial" style="text-align: center;">
+            <div class="card-perfil-branco" style="flex-direction: column; padding: 28px 24px;">
+                <h2 style="font-family: 'Baloo 2', sans-serif; font-size: 1.8rem; color: #2d4232; margin-bottom: 6px;">Aguardando oponente...</h2>
+                <p style="color: #4a6350; font-weight: 600;">Envie o código abaixo para o outro jogador:</p>
+                <h1 class="codigo-destaque" id="codigo-sala-display" style="font-size: 2.8rem; letter-spacing: 6px; color: #5b8c5a; margin: 14px 0;">---</h1>
+                <p style="font-weight: 600; color: #6c8270; margin-bottom: 16px;">Conectando jogadores...</p>
+                <button id="btn-cancelar-sala" class="btn-sair-salvia" style="padding: 10px 24px;">Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -413,18 +703,18 @@
     </div>
 
     <!-- ===== MODAL SET USERNAME ===== -->
-    <div id="modal-username" class="oculto" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px;">
-        <div class="tela-inicial-card" style="max-width: 380px;">
-            <div class="titulo-emoji" style="font-size: 2.5rem; margin-bottom: 10px;">🏷️</div>
-            <h1 style="text-align: center; font-size: 1.8rem; margin-bottom: 10px;">Defina seu Apelido</h1>
-            <p style="margin: 0 0 20px 0; font-size: 0.95rem; color: rgba(255,255,255,0.7);">Escolha um nome único (3 a 16 caracteres, sem espaços).</p>
+    <div id="modal-username" class="oculto" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(38, 56, 41, 0.75); z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px;">
+        <div class="card-perfil-branco" style="max-width: 380px; flex-direction: column; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 2.4rem; margin-bottom: 6px;">🏷️</div>
+            <h1 style="font-family: 'Baloo 2', sans-serif; font-size: 1.7rem; color: #2d4232; margin-bottom: 6px;">Defina seu Apelido</h1>
+            <p style="margin: 0 0 16px 0; font-size: 0.92rem; color: #526b56;">Escolha um nome único (3 a 16 caracteres, sem espaços).</p>
             
             <input type="text" id="input-username" placeholder="Digite seu apelido..." maxlength="16" 
-                style="width: 100%; padding: 14px 16px; margin-bottom: 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(74,222,128,0.3); border-radius: 12px; font-size: 1rem; color: #fff; outline: none; font-family: 'Outfit', sans-serif; box-sizing: border-box; transition: all 0.2s;">
+                style="width: 100%; padding: 12px 16px; margin-bottom: 10px; background: #f5f3ec; border: 2px solid #2d4232; border-radius: 12px; font-size: 1rem; color: #2d4232; outline: none; font-family: 'Fredoka', 'Outfit', sans-serif; box-sizing: border-box;">
             
-            <p id="error-username" style="color: #f87171; font-size: 0.85rem; margin-bottom: 15px; display: none;"></p>
+            <p id="error-username" style="color: #dc2626; font-weight: 700; font-size: 0.85rem; margin-bottom: 12px; display: none;"></p>
             
-            <button id="btn-salvar-username" class="btn-modal-primario" style="width: 100%; margin-top: 10px;">Salvar e Jogar</button>
+            <button id="btn-salvar-username" class="btn-sair-salvia" style="width: 100%; margin-top: 6px; padding: 10px;">Salvar e Jogar</button>
         </div>
     </div>
 
@@ -439,7 +729,7 @@
 
         socketClient = new SocketClient();
         window.addEventListener('loginConcluido', () => {
-            if (socketClient && socketClient.conectar) {
+            if (socketClient && socketClient.conectar && window.usuarioLogado) {
                 socketClient.conectar();
             }
         });
@@ -448,13 +738,13 @@
             if (jogo) jogo.destruir();
             if (socketClient && socketClient.socket) {
                 socketClient.socket.disconnect();
-                socketClient.socket = null; // força recriar nova conexão num próximo login
+                socketClient.socket = null;
             }
         });
 
         // Botões de Modo
         document.querySelectorAll(".btn-modo").forEach(btn => {
-            if(btn.id === 'btn-salvar-username') return; // ignore modal button
+            if(btn.id === 'btn-salvar-username') return;
             btn.addEventListener("click", () => {
                 document.querySelectorAll(".btn-modo:not(#btn-salvar-username)").forEach(b => b.classList.remove("ativo"));
                 btn.classList.add("ativo");
@@ -494,7 +784,6 @@
         });
 
         document.getElementById("btn-cancelar-sala").addEventListener("click", () => {
-            // Recarrega a página ou desconecta
             window.location.reload();
         });
 
@@ -522,7 +811,6 @@
         // Modal – jogar novamente
         document.getElementById("modal-jogar-novamente").addEventListener("click", () => {
             if (modoSelecionado === 3) {
-                // Online não permite "jogar novamente" diretamente ainda, volta pro menu
                 voltarMenu();
                 return;
             }
@@ -548,7 +836,6 @@
             tabuleiroEl.className = "";
             tabuleiroEl.dataset.cols = cols;
 
-            // Ajusta o cabeçalho
             if (modo === 1) {
                 document.getElementById("info-single").classList.remove("oculto");
                 document.getElementById("info-multi").classList.add("oculto");
@@ -588,15 +875,16 @@
         }
 
         function iniciarJogoOnline(state) {
-            prepararInterface(state.pares, state.cols, 3);
+            const totalPares = state.pairs || state.pares;
+            prepararInterface(totalPares, state.cols, 3);
             jogo = new Jogo(state.cols, 3);
-            jogo._pares = state.pares;
+            jogo._pares = totalPares;
             jogo.socketClient = socketClient;
             jogo.iniciarOnline(state);
         }
 
         function voltarMenu() {
-            if (modoSelecionado === 3) window.location.reload(); // Reset completo pra não manter socket preso
+            if (modoSelecionado === 3) window.location.reload();
             
             if (jogo) jogo.destruir();
             document.getElementById("area-jogo").classList.add("oculto");

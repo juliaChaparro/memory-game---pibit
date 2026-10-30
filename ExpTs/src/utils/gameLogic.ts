@@ -10,6 +10,7 @@ export interface Player {
   socketId: string;
   score: number;
   matches: number;
+  streak: number;
   role: 'PLAYER_1' | 'PLAYER_2';
   hits: number;
   misses: number;
@@ -29,13 +30,28 @@ export interface GameState {
   cols: number;
   isAnimating: boolean; 
   turnEndsAt?: number; 
+  turnTimeRemainingMs?: number;
   startTime?: number;
   lastMove?: 'MATCH' | 'MISMATCH' | null;
+  lastPointsEarned?: number | null;
+  lastStreak?: number | null;
+}
+
+/**
+ * Regra de Pontuação por Sequência (Streak) — Modo 2 Jogadores / Online:
+ * - 1º acerto (ou acerto isolado após erro): 100 pontos
+ * - 2º acerto consecutivo: 150 pontos (+50 de bônus)
+ * - N-ésimo acerto consecutivo (N >= 1): Pontos = 100 + (N - 1) * 50
+ */
+export function calculateStreakPoints(streak: number): number {
+  if (streak <= 0) return 0;
+  return 100 + (streak - 1) * 50;
 }
 
 export function getSanitizedState(state: GameState): GameState {
   return {
     ...state,
+    turnTimeRemainingMs: state.turnEndsAt ? Math.max(0, state.turnEndsAt - Date.now()) : 20000,
     board: state.board.map(card => ({
       ...card,
       value: (card.isFlipped || card.isMatched) ? card.value : null
@@ -84,7 +100,7 @@ export function initializeBoard(pares: number): Card[] {
 }
 
 export function processFlip(state: GameState, cardIndex: number): { gameOver: boolean, isMatch: boolean | null } {
-  if (state.isAnimating) return { gameOver: false, isMatch: null }; // Bloqueio caso servidor esteja aguardando
+  if (state.isAnimating) return { gameOver: false, isMatch: null };
 
   const card = state.board[cardIndex];
   if (!card || card.isFlipped || card.isMatched) return { gameOver: false, isMatch: null };
@@ -94,7 +110,7 @@ export function processFlip(state: GameState, cardIndex: number): { gameOver: bo
   card.isFlipped = true;
   state.flippedCards.push(cardIndex);
 
-  let isMatch = null;
+  let isMatch: boolean | null = null;
 
   if (state.flippedCards.length === 2) {
     const [idx1, idx2] = state.flippedCards as [number, number];
@@ -111,10 +127,13 @@ export function processFlip(state: GameState, cardIndex: number): { gameOver: bo
       card2.isMatched = true;
       
       if (currentPlayer) {
-        const pontosBase = 100 + (state.cols - 2) * 20;
-        currentPlayer.score += pontosBase;
+        currentPlayer.streak = (currentPlayer.streak || 0) + 1;
+        const pontosGanhos = calculateStreakPoints(currentPlayer.streak);
+        currentPlayer.score += pontosGanhos;
         currentPlayer.matches += 1;
         currentPlayer.hits += 1;
+        state.lastPointsEarned = pontosGanhos;
+        state.lastStreak = currentPlayer.streak;
       }
       
       state.matches += 1;
@@ -123,9 +142,12 @@ export function processFlip(state: GameState, cardIndex: number): { gameOver: bo
     } else {
       isMatch = false;
       if (currentPlayer) {
-        currentPlayer.score = Math.max(0, currentPlayer.score - 10);
+        // Em caso de erro: zera o contador de acertos consecutivos (streak = 0)
+        currentPlayer.streak = 0;
         currentPlayer.misses += 1;
       }
+      state.lastPointsEarned = 0;
+      state.lastStreak = 0;
     }
   }
 
